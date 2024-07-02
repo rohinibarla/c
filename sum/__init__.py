@@ -13,7 +13,7 @@ def exists():
 @check50.check(exists)
 def compiles():
     """sum.c compiles"""
-    check50.c.compile("sum.c", lcs50=False)
+    check50.c.compile("sum.c", lcs50=True)
 
 
 @check50.check(compiles)
