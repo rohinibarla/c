@@ -1,0 +1,2 @@
+To find the third angle of a triangle.
+Enter the first angle: Enter the second angle: The third angle of the triangle is 80 degrees.
