@@ -1,0 +1,2 @@
+To check number is even or odd.
+Enter a number: 9 is an odd number.
