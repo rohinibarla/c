@@ -24,12 +24,6 @@ def test_1():
 
 
 @check50.check(compiles)
-def test_4():
-    """test_4"""
-    test_input_output("./natural", "test_4_input.txt", "test_4_output.txt")
-
-
-@check50.check(compiles)
 def test_2():
     """test_2"""
     test_input_output("./natural", "test_2_input.txt", "test_2_output.txt")
@@ -39,6 +33,12 @@ def test_2():
 def test_3():
     """test_3"""
     test_input_output("./natural", "test_3_input.txt", "test_3_output.txt")
+
+
+@check50.check(compiles)
+def test_4():
+    """test_4"""
+    test_input_output("./natural", "test_4_input.txt", "test_4_output.txt")
 
 
 # Helpers
