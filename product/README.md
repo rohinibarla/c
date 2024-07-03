@@ -22,7 +22,7 @@ check50 rohinibarla/c/problems/product
 ### Coding Style
 Check coding style errors
 ```
-style50 -o split product.c
+style50 product.c
 ```
 
 ### Submit

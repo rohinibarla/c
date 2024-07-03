@@ -22,7 +22,7 @@ check50 rohinibarla/c/problems/triangle
 ### Coding Style
 Check coding style errors
 ```
-style50 -o split triangle.c
+style50 triangle.c
 ```
 
 ### Submit

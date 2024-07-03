@@ -27,7 +27,7 @@ check50 rohinibarla/c/problems/evenorodd
 ### Coding Style
 Check coding style errors
 ```
-style50 -o split evenorodd.c
+style50 evenorodd.c
 ```
 
 ### Submit

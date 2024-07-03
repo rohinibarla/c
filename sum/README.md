@@ -8,7 +8,7 @@ Enter the first number: 2
 Enter the second number: 3
 The sum of 2 and 3 is 5.
 ```
-TODO: add ascci cinema.
+[![asciicast](https://asciinema.org/a/UPtfGEn3ciG4ix8GnaC2Jg2S3.svg)](https://asciinema.org/a/UPtfGEn3ciG4ix8GnaC2Jg2S3)
 
 ### Correctness
 Run you program and verify that your ouput is in line with the user experience.
@@ -22,7 +22,7 @@ check50 rohinibarla/c/problems/sum
 ### Coding Style
 Check coding style errors
 ```
-style50 -o split sum.c
+style50 sum.c
 ```
 
 ### Submit

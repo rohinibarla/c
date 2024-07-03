@@ -21,7 +21,7 @@ check50 rohinibarla/c/problems/natural
 ### Coding Style
 Check coding style errors
 ```
-style50 -o split natural.c
+style50 natural.c
 ```
 
 ### Submit
