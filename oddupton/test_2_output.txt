@@ -1,0 +1,2 @@
+To display all odd numbers up to a given number.
+Up to which number would you like to print odd numbers? The odd numbers up to 20 are 1, 3, 5, 7, 9, 11, 13, 15, 17, 19.
