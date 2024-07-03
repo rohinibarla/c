@@ -1,9 +1,11 @@
-## L#10.01.Tutorial: Natural numbers
-
+## Natural numbers
+Print first N natural numbers.
 
 ### User-experience
 ```
-
+To display a series of natural numbers.
+How many natural numbers would you like to see? 5
+The first 5 natural numbers are 1, 2, 3, 4, 5.
 ```
 TODO: add ascci cinema.
 
