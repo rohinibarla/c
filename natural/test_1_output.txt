@@ -1,0 +1,2 @@
+To display a series of natural numbers.
+How many natural numbers would you like to see? The first 3 natural numbers are 1, 2, 3.
