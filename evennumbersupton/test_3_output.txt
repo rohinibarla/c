@@ -1,0 +1,2 @@
+To display all even numbers up to a given number.
+Up to which number would you like to print even numbers? The even numbers up to 10 are 0, 2, 4, 6, 8, 10.
