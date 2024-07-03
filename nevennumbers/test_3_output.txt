@@ -1,0 +1,2 @@
+To display a series of even numbers.
+How many even numbers would you like to see? The first 9 even numbers are 0, 2, 4, 6, 8, 10, 12, 14, 16.
