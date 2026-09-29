@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Execution: fetch, decode, execute</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --page:#eceaf4; --ink:#111; --muted:#555;
+  --slide:#ffffff; --box:#DDD9C4; --boxline:#7F7F7F;
+  --red:#D00000; --blue:#4F81BD; --blue-lit:#79AEEF; --green:#2E7D32;
+  --f1:#4747B8; --f2:#8585D1; --f3:#A9A9E0;
+  --btn:#4747B8; --btn-ink:#fff; --ctl:#fff; --ctl-line:#c9c7dc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --page:#1c1b26; --ink:#eee; --muted:#aaa; --ctl:#2a2938; --ctl-line:#44425a; }
+}
+:root[data-theme="dark"]{ --page:#1c1b26; --ink:#eee; --muted:#aaa; --ctl:#2a2938; --ctl-line:#44425a; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--page); color:var(--ink);
+  font-family:"Source Sans 3","Source Sans Pro","Segoe UI",system-ui,sans-serif; }
+.wrap{ max-width:1280px; margin:0 auto; padding:16px; }
+.slide{ background:var(--slide); color:#000; border-radius:6px; overflow:hidden;
+  box-shadow:0 2px 14px rgba(40,30,120,.18); }
+.head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 24px; padding:22px 36px 0; }
+.head h1{ margin:0; font-size:clamp(30px,4.2vw,54px); font-weight:700; line-height:1; }
+.phases{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:clamp(14px,1.6vw,19px); }
+.phase{ padding:6px 14px; border-radius:999px; border:2px solid #d5d3e6; color:#8a88a8; transition:all .25s; }
+.phase.on{ border-color:var(--red); color:#fff; background:var(--red); }
+.phase.done{ color:var(--green); border-color:#b9d8bb; }
+.sep{ color:#bbb; }
+.instr{ font-size:clamp(13px,1.4vw,17px); color:#555; width:100%; text-align:right; }
+.stage{ overflow-x:auto; }
+svg{ display:block; width:100%; height:auto; min-width:640px; }
+.caption{ padding:4px 36px 18px; min-height:112px; }
+.caption .t{ font-size:clamp(17px,2vw,26px); font-weight:700; margin:0 0 4px; }
+.caption .s{ font-size:clamp(15px,1.7vw,22px); font-weight:600; margin:0; color:#222; }
+.footer{ display:grid; grid-template-columns:1fr 1fr 1fr; font-family:Roboto,Arial,sans-serif; color:#fff; font-size:clamp(13px,1.5vw,20px); }
+.footer div{ padding:10px; text-align:center; }
+.footer div:nth-child(1){ background:var(--f1); } .footer div:nth-child(2){ background:var(--f2); } .footer div:nth-child(3){ background:var(--f3); }
+.controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; margin:16px 0 4px; }
+button,select{ font:inherit; font-size:17px; font-weight:600; border-radius:8px; padding:9px 18px; cursor:pointer;
+  border:1.5px solid var(--ctl-line); background:var(--ctl); color:var(--ink); }
+button.primary{ background:var(--btn); color:var(--btn-ink); border-color:var(--btn); }
+button:disabled{ opacity:.4; cursor:default; }
+button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline-offset:2px; }
+.hint{ text-align:center; color:var(--muted); font-size:14px; margin:6px 0 20px; }
+/* svg styling */
+.lbl{ fill:var(--red); font-weight:700; }
+.box{ fill:var(--box); stroke:var(--boxline); stroke-width:1.5; }
+.inner{ fill:var(--box); stroke:#000; stroke-width:1.5; }
+.arrow{ fill:var(--blue); transition:fill .2s; }
+.arrow.lit{ fill:var(--blue-lit); filter:url(#glow); }
+.bin{ font-size:19px; fill:#000; font-weight:600; font-variant-numeric:tabular-nums; transition:fill .25s; }
+.bin.hl{ fill:var(--green); }
+.reg{ font-size:15px; font-weight:600; fill:#000; }
+.reg.hl{ fill:var(--green); }
+.dec{ font-size:15px; fill:#888; }
+.addr{ font-size:19px; font-weight:600; fill:#000; }
+.addr.named{ fill:var(--green); font-weight:700; }
+.rlab{ font-size:14px; font-weight:700; fill:var(--green); opacity:0; transition:opacity .4s; }
+.rlab.show{ opacity:1; }
+.cu{ fill:#fff; stroke:#000; stroke-width:1.5; transition:fill .2s; }
+.cu.pulse{ fill:#ffe9e9; }
+.alu.pulse{ fill:#f7e7a8; }
+.pkt rect{ fill:#fff; stroke:var(--green); stroke-width:2; }
+.pkt text{ fill:var(--green); font-weight:700; font-size:15px; }
+.panel{ fill:#fafafe; stroke:#b9b7d4; stroke-width:1.5; stroke-dasharray:6 5; }
+.ptitle{ font-size:16px; fill:#666; font-weight:600; }
+.pbits{ font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
+.pop{ fill:#000; } .paddr{ fill:var(--red); }
+.psub{ font-size:14px; fill:#777; }
+.pmean{ font-size:20px; font-weight:600; fill:#000; }
+.fade{ transition:opacity .35s; }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="slide">
+    <div class="head">
+      <h1>Execution</h1>
+      <div class="phases" aria-label="Current phase">
+        <span class="phase" id="ph-fetch">Fetch</span><span class="sep">›</span>
+        <span class="phase" id="ph-decode">Decode</span><span class="sep">›</span>
+        <span class="phase" id="ph-execute">Execute</span>
+      </div>
+      <div class="instr" id="instr">&nbsp;</div>
+    </div>
+
+    <div class="stage">
+    <svg viewBox="0 0 1600 760" id="svg" role="img" aria-label="CPU, memory and bus diagram showing instruction execution">
+      <defs>
+        <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="shadow" x="-20%" y="-40%" width="140%" height="180%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity=".25"/>
+        </filter>
+      </defs>
+
+      <!-- zoom line from control unit to decoder panel (behind bus) -->
+      <path d="M300 330 H110 V560" fill="none" stroke="#b9b7d4" stroke-width="1.5" stroke-dasharray="6 5"/>
+
+      <!-- Bus -->
+      <polygon id="bus" class="arrow" points="60,470 95,436 95,455 1505,455 1505,436 1540,470 1505,504 1505,485 95,485 95,504"/>
+      <text x="440" y="535" class="lbl" font-size="32">Bus</text>
+      <g id="arrows"></g>
+
+      <!-- CPU -->
+      <text x="300" y="105" class="lbl" font-size="34" text-anchor="middle">CPU</text>
+      <rect x="140" y="120" width="320" height="172" class="box"/>
+      <rect id="alu" x="162" y="138" width="92" height="136" class="inner alu"/>
+      <text x="208" y="200" class="lbl" font-size="30" text-anchor="middle">ALU</text>
+      <text id="alu-txt" x="208" y="245" font-size="17" font-weight="700" fill="#2E7D32" text-anchor="middle"></text>
+      <rect x="284" y="138" width="160" height="136" class="inner"/>
+      <text id="reg-ir" x="364" y="170" class="reg" text-anchor="middle"></text>
+      <text id="reg-r1" x="364" y="212" class="reg" text-anchor="middle"></text>
+      <text id="reg-r2" x="364" y="250" class="reg" text-anchor="middle"></text>
+      <text id="lab-r1" x="262" y="212" class="rlab">R1</text>
+      <text id="lab-r2" x="262" y="250" class="rlab">R2</text>
+      <line x1="345" y1="305" x2="360" y2="278" stroke="#000" stroke-width="1.5"/>
+      <path d="M356 284 L360 276 L364 285" fill="none" stroke="#000" stroke-width="1.5"/>
+      <rect id="cu" x="300" y="305" width="180" height="50" class="cu"/>
+      <text x="390" y="340" class="lbl" font-size="28" text-anchor="middle">Control Unit</text>
+
+      <!-- Memory -->
+      <text x="830" y="105" class="lbl" font-size="34" text-anchor="middle">Memory</text>
+      <rect x="640" y="120" width="380" height="280" class="box"/>
+      <text id="addr-m1" x="668" y="168" class="addr">1</text>
+      <text id="val-m1" x="735" y="168" class="bin">00000100</text>
+      <text id="dec-m1" x="832" y="168" class="dec">(4)</text>
+      <text id="addr-m2" x="668" y="203" class="addr">2</text>
+      <text id="val-m2" x="735" y="203" class="bin">00000001</text>
+      <text id="dec-m2" x="832" y="203" class="dec">(1)</text>
+      <text x="672" y="232" class="addr">:</text><text x="768" y="232" class="addr">:</text>
+      <text id="val-i1" x="690" y="275" class="bin">0000010010011001</text>
+      <text id="val-i2" x="690" y="308" class="bin">0000010010011010</text>
+      <text id="val-i3" x="690" y="341" class="bin">0000011011001000</text>
+      <text id="val-i4" x="690" y="374" class="bin">0000010011010001</text>
+      <text x="1008" y="258" font-size="14" fill="#777" text-anchor="end">program</text>
+      <text x="1008" y="150" font-size="14" fill="#777" text-anchor="end">data</text>
+
+      <!-- Output -->
+      <text x="1180" y="78" class="lbl" font-size="32">Output Devices:</text>
+      <text x="1180" y="110" class="lbl" font-size="32">Monitor/Printer/...</text>
+      <rect x="1180" y="122" width="200" height="130" class="box"/>
+
+      <!-- Hard disk / input -->
+      <rect x="760" y="560" width="190" height="122" class="box"/>
+      <text x="855" y="718" class="lbl" font-size="32" text-anchor="middle">Hard Disk</text>
+      <rect x="1040" y="560" width="190" height="122" class="box"/>
+      <text x="1040" y="718" class="lbl" font-size="32">Input Devices:</text>
+      <text x="1040" y="752" class="lbl" font-size="32">Keyboard/CD/..</text>
+
+      <!-- Decoder panel -->
+      <rect x="60" y="560" width="640" height="190" rx="10" class="panel"/>
+      <text x="82" y="592" class="ptitle">Inside the Control Unit</text>
+      <g id="pbody" class="fade">
+        <text id="p-op" x="82" y="642" class="pbits pop"></text>
+        <text id="p-addr" x="300" y="642" class="pbits paddr"></text>
+        <text id="p-opl" x="82" y="666" class="psub"></text>
+        <text id="p-addrl" x="300" y="666" class="psub"></text>
+        <text id="p-mean" x="82" y="714" class="pmean"></text>
+      </g>
+      <text id="p-empty" x="82" y="660" class="psub" font-size="18">Waiting for an instruction to decode.</text>
+
+      <g id="packets"></g>
+    </svg>
+    </div>
+
+    <div class="caption" aria-live="polite">
+      <p class="t" id="cap-t"></p>
+      <p class="s" id="cap-s"></p>
+    </div>
+    <div class="footer"><div>System Internals</div><div>Enhance42</div><div id="count"></div></div>
+  </div>
+
+  <div class="controls">
+    <button id="restart">Restart</button>
+    <button id="prev">Previous</button>
+    <button id="play" class="primary">Play</button>
+    <button id="next">Next</button>
+    <select id="speed" aria-label="Animation speed">
+      <option value="0.6">Slow</option>
+      <option value="1" selected>Normal</option>
+      <option value="1.7">Fast</option>
+    </select>
+  </div>
+  <p class="hint">Use ← → to step, Space to play or pause.</p>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- arrows ----------
+function vArrow(id, x, y1, y2){
+  const p = document.createElementNS(NS,'polygon');
+  const h=20, hw=22, sw=8;
+  p.setAttribute('points',[
+    [x,y1],[x+hw,y1+h],[x+sw,y1+h],[x+sw,y2-h],[x+hw,y2-h],[x,y2],
+    [x-hw,y2-h],[x-sw,y2-h],[x-sw,y1+h],[x-hw,y1+h]].map(a=>a.join(',')).join(' '));
+  p.setAttribute('class','arrow'); p.id=id; $('arrows').appendChild(p);
+}
+vArrow('arr-cpu',220,294,454);
+vArrow('arr-mem',830,402,454);
+vArrow('arr-out',1280,254,454);
+vArrow('arr-disk',855,488,558);
+vArrow('arr-in',1135,488,558);
+
+// ---------- program ----------
+const I = ['0000010010011001','0000010010011010','0000011011001000','0000010011010001'];
+const DEC = [
+  {op:I[0].slice(0,13), addr:'001', name:'Read', mean:'Read: bring data in memory location 001 (location 1) to CPU'},
+  {op:I[1].slice(0,13), addr:'010', name:'Read', mean:'Read: bring data in memory location 010 (location 2) to CPU'},
+  {op:I[2], addr:'', name:'Add', mean:'Add: add the two numbers read, using the ALU'},
+  {op:I[3].slice(0,13), addr:'001', name:'Store', mean:'Store: put the result in memory location 001 (location 1)'}
+];
+const ROW_Y = {m1:168, m2:203, i1:275, i2:308, i3:341, i4:374};
+const ROW_X = {m1:772, m2:772, i1:760, i2:760, i3:760, i4:760};
+const SLOT = {ir:[364,164], r1:[364,206], r2:[364,244]};
+const ALU_C = [208,238];
+
+function memToCpu(row, slot){
+  return [[ROW_X[row],ROW_Y[row]-6],[830,410],[830,470],[220,470],[220,300],SLOT[slot]];
+}
+function cpuToMem(slot,row){ return memToCpu(row,slot).reverse(); }
+
+// ---------- state ----------
+const INIT = {mem1:'00000100', mem2:'00000001', hl:null, ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false};
+
+const steps = [
+  {phase:null, ins:null,
+   t:'A program is a collection of commands',
+   s:'The program (4 commands) and its data (numbers 4 and 1) are stored in Memory, in binary.',
+   apply:s=>s, anim:null},
+];
+
+function addInstruction(k, fetchT, decodeS, execT, execS, execApply, execAnim){
+  const row='i'+(k+1);
+  steps.push({phase:'fetch', ins:k, t:fetchT,
+    s:'Fetch: the command travels from Memory over the Bus into the CPU.',
+    apply:s=>({...s, hl:row, ir:I[k], hlReg:'ir', dec:null, alu:''}),
+    anim:async run=>{
+      setHl(row); $('reg-ir').textContent=''; clearDecoder(); $('alu-txt').textContent='';
+      await sleep(350,run);
+      await fly(I[k], memToCpu(row,'ir'), run, ['arr-mem','bus','arr-cpu']);
+    }});
+  steps.push({phase:'decode', ins:k, t:'Decode in the Control Unit', s:decodeS,
+    apply:s=>({...s, hl:row, hlReg:'ir', dec:k}),
+    anim:async run=>{
+      pulse('cu',true);
+      const d=DEC[k];
+      showDecoder(k,{op:true,addr:false,mean:false}); await sleep(700,run);
+      if(d.addr){ showDecoder(k,{op:true,addr:true,mean:false}); await sleep(700,run); }
+      showDecoder(k,{op:true,addr:true,mean:true}); await sleep(500,run);
+      pulse('cu',false);
+    }});
+  steps.push({phase:'execute', ins:k, t:execT, s:execS, apply:s=>execApply({...s, dec:k}), anim:execAnim});
+}
+
+addInstruction(0,
+  'Step 1: Bring 0000010010011001 to CPU',
+  '0000010010011001 = Bring data stored in memory location 001 to CPU',
+  'Step 2: Execution of 0000010010011001 in Control Unit',
+  'Brings data stored in location 1, number 4, to CPU',
+  s=>({...s, hl:'m1', r1:s.mem1, hlReg:'r1'}),
+  async run=>{ setHl('m1'); await sleep(350,run); await fly(cur.mem1, memToCpu('m1','r1'), run, ['arr-mem','bus','arr-cpu']); });
+
+addInstruction(1,
+  'Step 3: Bring 0000010010011010 to CPU',
+  '0000010010011010 = Bring data stored in memory location 010 to CPU',
+  'Step 4: Execution of 0000010010011010 in Control Unit',
+  'Brings data stored in location 2, number 1, to CPU',
+  s=>({...s, hl:'m2', r2:s.mem2, hlReg:'r2'}),
+  async run=>{ setHl('m2'); await sleep(350,run); await fly(cur.mem2, memToCpu('m2','r2'), run, ['arr-mem','bus','arr-cpu']); });
+
+addInstruction(2,
+  'Step 5: Bring 0000011011001000 to CPU',
+  '0000011011001000 = Add two stored numbers',
+  'Step 6: Execution of 0000011011001000 in Control Unit',
+  'Adds two numbers inside CPU using ALU: 00000100 + 00000001 = 00000101 (4 + 1 = 5)',
+  s=>({...s, hl:null, r1:'00000101', hlReg:'r1', alu:'4 + 1 = 5'}),
+  async run=>{
+    setHl(null);
+    await Promise.all([
+      fly(cur.r1, [SLOT.r1, ALU_C], run, []),
+      fly(cur.r2, [SLOT.r2, [ALU_C[0], ALU_C[1]+22]], run, [])
+    ]);
+    pulse('alu',true); $('alu-txt').textContent='4 + 1'; await sleep(600,run);
+    $('alu-txt').textContent='= 5'; await sleep(500,run);
+    pulse('alu',false);
+    await fly('00000101', [ALU_C, SLOT.r1], run, []);
+  });
+
+addInstruction(3,
+  'Step 7: Bring 0000010011010001 to CPU',
+  '0000010011010001 = Store number in ALU to memory location 001',
+  'Step 8: Execution of 0000010011010001 in Control Unit',
+  'Stores the result, number 5, in location 1',
+  s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}),
+  async run=>{ await fly(cur.r1, cpuToMem('r1','m1'), run, ['arr-cpu','bus','arr-mem']); });
+
+steps.push({phase:null, ins:null,
+  t:'Named Memory and CPU Locations',
+  s:'Assembly language names locations instead of numbering them: memory locations 1 and 2 become NUM1 and NUM2, CPU locations become R1 and R2.',
+  apply:s=>({...s, hl:null, hlReg:null, dec:null, alu:'', named:true}), anim:null});
+
+function stateAt(n){ let s={...INIT}; for(let i=1;i<=n;i++) s=steps[i].apply(s); return s; }
+
+// ---------- rendering ----------
+function setHl(row){
+  ['m1','m2','i1','i2','i3','i4'].forEach(r=>$('val-'+r).classList.toggle('hl', r===row));
+}
+function pulse(id,on){ $(id).classList.toggle('pulse',on); }
+function clearDecoder(){ $('pbody').style.opacity=0; $('p-empty').style.opacity=1; }
+function showDecoder(k,vis){
+  const d=DEC[k];
+  $('p-empty').style.opacity=0; $('pbody').style.opacity=1;
+  const op=$('p-op'), ad=$('p-addr');
+  op.textContent=d.op; ad.textContent=d.addr;
+  let w=0; try{ w=op.getComputedTextLength(); }catch(e){ w=d.op.length*15.5; }
+  const ax=82+w+14; ad.setAttribute('x',ax); $('p-addrl').setAttribute('x',ax);
+  op.style.opacity=vis.op?1:0;
+  ad.style.opacity=vis.addr?1:(d.addr?.15:0);
+  $('p-opl').textContent=vis.op?(d.addr?'operation':'operation (no address needed)'):'';
+  $('p-addrl').textContent=(vis.addr&&d.addr)?'address':'';
+  $('p-mean').textContent=vis.mean?d.mean:'';
+}
+
+function render(s, step, idx){
+  $('val-m1').textContent=s.mem1; $('dec-m1').textContent='('+parseInt(s.mem1,2)+')';
+  $('val-m2').textContent=s.mem2; $('dec-m2').textContent='('+parseInt(s.mem2,2)+')';
+  setHl(s.hl);
+  $('reg-ir').textContent=s.ir; $('reg-r1').textContent=s.r1; $('reg-r2').textContent=s.r2;
+  ['ir','r1','r2'].forEach(r=>$('reg-'+r).classList.toggle('hl', s.hlReg===r));
+  $('alu-txt').textContent=s.alu;
+  pulse('cu',false); pulse('alu',false);
+  if(s.dec===null) clearDecoder(); else showDecoder(s.dec,{op:true,addr:true,mean:true});
+  $('addr-m1').textContent=s.named?'NUM1':'1'; $('addr-m2').textContent=s.named?'NUM2':'2';
+  $('addr-m1').classList.toggle('named',s.named); $('addr-m2').classList.toggle('named',s.named);
+  $('lab-r1').classList.toggle('show',s.named); $('lab-r2').classList.toggle('show',s.named);
+  renderChrome(step, idx);
+}
+function renderChrome(step, idx){
+  const order=['fetch','decode','execute'];
+  const pi=order.indexOf(step.phase);
+  order.forEach((p,i)=>{
+    const el=$('ph-'+p);
+    el.classList.toggle('on', i===pi);
+    el.classList.toggle('done', pi>=0 && i<pi);
+  });
+  $('instr').textContent = step.ins===null ? '\u00a0' : 'Command '+(step.ins+1)+' of 4';
+  $('cap-t').textContent=step.t; $('cap-s').textContent=step.s;
+  $('count').textContent=(idx+1)+'/'+steps.length;
+  $('prev').disabled = idx===0; $('next').disabled = idx===steps.length-1;
+}
+
+// ---------- animation ----------
+let runId=0, cur=null, idx=0, speed=1, playing=false;
+const CANCEL={};
+function guard(run){ if(run!==runId) throw CANCEL; }
+function sleep(ms,run){ return new Promise((res,rej)=>setTimeout(()=>{ run===runId?res():rej(CANCEL); }, reduce?0:ms/speed)); }
+function clearPackets(){ $('packets').innerHTML=''; document.querySelectorAll('.arrow.lit').forEach(a=>a.classList.remove('lit')); }
+
+function fly(text, pts, run, lit){
+  return new Promise((res,rej)=>{
+    guard(run);
+    const g=document.createElementNS(NS,'g'); g.setAttribute('class','pkt'); g.setAttribute('filter','url(#shadow)');
+    const w=text.length*8.8+24, h=28;
+    const r=document.createElementNS(NS,'rect'); r.setAttribute('x',-w/2); r.setAttribute('y',-h/2); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('rx',6);
+    const t=document.createElementNS(NS,'text'); t.setAttribute('text-anchor','middle'); t.setAttribute('y',5); t.textContent=text;
+    g.appendChild(r); g.appendChild(t); $('packets').appendChild(g);
+    lit.forEach(id=>$(id).classList.add('lit'));
+    const segs=[]; let total=0;
+    for(let i=1;i<pts.length;i++){ const L=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); segs.push(L); total+=L; }
+    const dur = reduce?1:Math.max(500, total*1.35)/speed;
+    const t0=performance.now();
+    const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+    function frame(now){
+      if(run!==runId){ g.remove(); rej(CANCEL); return; }
+      let p=Math.min(1,(now-t0)/dur), d=ease(p)*total, i=0;
+      while(i<segs.length-1 && d>segs[i]){ d-=segs[i]; i++; }
+      const f=segs[i]?Math.min(1,d/segs[i]):1;
+      const x=pts[i][0]+(pts[i+1][0]-pts[i][0])*f, y=pts[i][1]+(pts[i+1][1]-pts[i][1])*f;
+      g.setAttribute('transform','translate('+x+','+y+')');
+      if(p<1) requestAnimationFrame(frame);
+      else { g.remove(); lit.forEach(id=>$(id).classList.remove('lit')); res(); }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+async function go(n, animate){
+  const run=++runId; clearPackets(); idx=n;
+  const step=steps[n];
+  if(animate && step.anim){
+    cur=stateAt(n-1); render(cur, step, n);
+    try{ await step.anim(run); }catch(e){ if(e===CANCEL) return false; throw e; }
+  }
+  if(run!==runId) return false;
+  cur=stateAt(n); render(cur, step, n);
+  return true;
+}
+
+async function play(){
+  playing=true; $('play').textContent='Pause';
+  if(idx>=steps.length-1) await go(0,false);
+  while(playing && idx<steps.length-1){
+    const ok=await go(idx+1,true);
+    if(!ok || !playing) break;
+    try{ await sleep(1400, runId); }catch(e){ break; }
+  }
+  stopPlay();
+}
+function stopPlay(){ playing=false; $('play').textContent= idx>=steps.length-1?'Replay':'Play'; }
+
+$('next').onclick=()=>{ stopPlay(); if(idx<steps.length-1) go(idx+1,true); };
+$('prev').onclick=()=>{ stopPlay(); if(idx>0) go(idx-1,false); };
+$('restart').onclick=()=>{ stopPlay(); go(0,false); };
+$('play').onclick=()=>{ if(playing){ stopPlay(); } else play(); };
+$('speed').onchange=e=>{ speed=parseFloat(e.target.value); };
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='SELECT') return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); $('next').click(); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); $('prev').click(); }
+  else if(e.key===' '){ e.preventDefault(); $('play').click(); }
+});
+
+go(0,false);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(cur && cur.dec!==null) showDecoder(cur.dec,{op:true,addr:true,mean:true}); });
+})();
+</script>
+</body>
+</html>
