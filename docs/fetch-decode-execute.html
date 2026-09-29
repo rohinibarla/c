@@ -79,6 +79,9 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
 .psub{ font-size:14px; fill:#777; }
 .pmean{ font-size:20px; font-weight:600; fill:#000; }
 .fade{ transition:opacity .35s; }
+.asm{ font-size:18px; font-weight:700; fill:#4747B8; opacity:0; transition:opacity .4s, fill .25s; }
+.asm.show{ opacity:1; }
+.asm.hl{ fill:var(--green); }
 @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
 </head>
@@ -145,6 +148,10 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <text id="val-i2" x="690" y="308" class="bin">0000010010011010</text>
       <text id="val-i3" x="690" y="341" class="bin">0000011011001000</text>
       <text id="val-i4" x="690" y="374" class="bin">0000010011010001</text>
+      <text id="asm-i1" x="864" y="275" class="asm">LOAD R1, NUM1</text>
+      <text id="asm-i2" x="864" y="308" class="asm">LOAD R2, NUM2</text>
+      <text id="asm-i3" x="864" y="341" class="asm">ADD R1, R2</text>
+      <text id="asm-i4" x="864" y="374" class="asm">STORE R1, NUM1</text>
       <text x="1008" y="258" font-size="14" fill="#777" text-anchor="end">program</text>
       <text x="1008" y="150" font-size="14" fill="#777" text-anchor="end">data</text>
 
@@ -162,7 +169,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
 
       <!-- Decoder panel -->
       <rect x="60" y="560" width="640" height="190" rx="10" class="panel"/>
-      <text x="82" y="592" class="ptitle">Inside the Control Unit</text>
+      <text id="p-title" x="82" y="592" class="ptitle">Inside the Control Unit</text>
       <g id="pbody" class="fade">
         <text id="p-op" x="82" y="642" class="pbits pop"></text>
         <text id="p-addr" x="300" y="642" class="pbits paddr"></text>
@@ -226,6 +233,12 @@ const DEC = [
   {op:I[2], addr:'', name:'Add', mean:'Add: add the two numbers read, using the ALU'},
   {op:I[3].slice(0,13), addr:'001', name:'Store', mean:'Store: put the result in memory location 001 (location 1)'}
 ];
+const DEC_ASM = [
+  {op:'LOAD', addr:'R1, NUM1', mean:'Copy the number in NUM1 into R1'},
+  {op:'LOAD', addr:'R2, NUM2', mean:'Copy the number in NUM2 into R2'},
+  {op:'ADD', addr:'R1, R2', mean:'R1 = R1 + R2 (the result stays in R1)'},
+  {op:'STORE', addr:'R1, NUM1', mean:'Copy the number in R1 into NUM1'}
+];
 const ROW_Y = {m1:168, m2:203, i1:275, i2:308, i3:341, i4:374};
 const ROW_X = {m1:772, m2:772, i1:760, i2:760, i3:760, i4:760};
 const SLOT = {ir:[364,164], r1:[364,206], r2:[364,244]};
@@ -237,7 +250,7 @@ function memToCpu(row, slot){
 function cpuToMem(slot,row){ return memToCpu(row,slot).reverse(); }
 
 // ---------- state ----------
-const INIT = {mem1:'00000100', mem2:'00000001', hl:null, ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false};
+const INIT = {mem1:'00000100', mem2:'00000001', hl:null, ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false};
 
 const steps = [
   {phase:null, ins:null,
@@ -246,24 +259,24 @@ const steps = [
    apply:s=>s, anim:null},
 ];
 
-function addInstruction(k, fetchT, decodeS, execT, execS, execApply, execAnim){
+function addInstruction(k, fetchT, decodeS, execT, execS, execApply, execAnim, opts={}){
   const row='i'+(k+1);
   steps.push({phase:'fetch', ins:k, t:fetchT,
-    s:'Fetch: the command travels from Memory over the Bus into the CPU.',
+    s:opts.fetchS||'Fetch: the command travels from Memory over the Bus into the CPU.',
     apply:s=>({...s, hl:row, ir:I[k], hlReg:'ir', dec:null, alu:''}),
     anim:async run=>{
       setHl(row); $('reg-ir').textContent=''; clearDecoder(); $('alu-txt').textContent='';
       await sleep(350,run);
       await fly(I[k], memToCpu(row,'ir'), run, ['arr-mem','bus','arr-cpu']);
     }});
-  steps.push({phase:'decode', ins:k, t:'Decode in the Control Unit', s:decodeS,
+  steps.push({phase:'decode', ins:k, t:opts.decodeT||'Decode in the Control Unit', s:decodeS,
     apply:s=>({...s, hl:row, hlReg:'ir', dec:k}),
     anim:async run=>{
       pulse('cu',true);
-      const d=DEC[k];
-      showDecoder(k,{op:true,addr:false,mean:false}); await sleep(700,run);
-      if(d.addr){ showDecoder(k,{op:true,addr:true,mean:false}); await sleep(700,run); }
-      showDecoder(k,{op:true,addr:true,mean:true}); await sleep(500,run);
+      const a=cur.asm, d=(a?DEC_ASM:DEC)[k];
+      showDecoder(k,{op:true,addr:false,mean:false},a); await sleep(700,run);
+      if(d.addr){ showDecoder(k,{op:true,addr:true,mean:false},a); await sleep(700,run); }
+      showDecoder(k,{op:true,addr:true,mean:true},a); await sleep(500,run);
       pulse('cu',false);
     }});
   steps.push({phase:'execute', ins:k, t:execT, s:execS, apply:s=>execApply({...s, dec:k}), anim:execAnim});
@@ -275,7 +288,7 @@ addInstruction(0,
   'Step 2: Execution of 0000010010011001 in Control Unit',
   'Brings data stored in location 1, number 4, to CPU',
   s=>({...s, hl:'m1', r1:s.mem1, hlReg:'r1'}),
-  async run=>{ setHl('m1'); await sleep(350,run); await fly(cur.mem1, memToCpu('m1','r1'), run, ['arr-mem','bus','arr-cpu']); });
+  execRead1);
 
 addInstruction(1,
   'Step 3: Bring 0000010010011010 to CPU',
@@ -283,15 +296,20 @@ addInstruction(1,
   'Step 4: Execution of 0000010010011010 in Control Unit',
   'Brings data stored in location 2, number 1, to CPU',
   s=>({...s, hl:'m2', r2:s.mem2, hlReg:'r2'}),
-  async run=>{ setHl('m2'); await sleep(350,run); await fly(cur.mem2, memToCpu('m2','r2'), run, ['arr-mem','bus','arr-cpu']); });
+  execRead2);
 
 addInstruction(2,
   'Step 5: Bring 0000011011001000 to CPU',
   '0000011011001000 = Add two stored numbers',
   'Step 6: Execution of 0000011011001000 in Control Unit',
-  'Adds two numbers inside CPU using ALU: 00000100 + 00000001 = 00000101 (4 + 1 = 5)',
+  'Adds two numbers inside CPU using ALU: 00000100 + 00000001 = 00000101 (4 + 1 = 5). The result goes back into R1.',
   s=>({...s, hl:null, r1:'00000101', hlReg:'r1', alu:'4 + 1 = 5'}),
-  async run=>{
+  execAdd);
+
+async function execRead1(run){ setHl('m1'); await sleep(350,run); await fly(cur.mem1, memToCpu('m1','r1'), run, ['arr-mem','bus','arr-cpu']); }
+async function execRead2(run){ setHl('m2'); await sleep(350,run); await fly(cur.mem2, memToCpu('m2','r2'), run, ['arr-mem','bus','arr-cpu']); }
+async function execStore(run){ await fly(cur.r1, cpuToMem('r1','m1'), run, ['arr-cpu','bus','arr-mem']); }
+async function execAdd(run){
     setHl(null);
     await Promise.all([
       fly(cur.r1, [SLOT.r1, ALU_C], run, []),
@@ -301,7 +319,7 @@ addInstruction(2,
     $('alu-txt').textContent='= 5'; await sleep(500,run);
     pulse('alu',false);
     await fly('00000101', [ALU_C, SLOT.r1], run, []);
-  });
+}
 
 addInstruction(3,
   'Step 7: Bring 0000010011010001 to CPU',
@@ -309,23 +327,66 @@ addInstruction(3,
   'Step 8: Execution of 0000010011010001 in Control Unit',
   'Stores the result, number 5, in location 1',
   s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}),
-  async run=>{ await fly(cur.r1, cpuToMem('r1','m1'), run, ['arr-cpu','bus','arr-mem']); });
+  execStore);
 
 steps.push({phase:null, ins:null,
   t:'Named Memory and CPU Locations',
   s:'Assembly language names locations instead of numbering them: memory locations 1 and 2 become NUM1 and NUM2, CPU locations become R1 and R2.',
   apply:s=>({...s, hl:null, hlReg:null, dec:null, alu:'', named:true}), anim:null});
 
+steps.push({phase:null, ins:null,
+  t:'Assembly Language',
+  s:'Each binary command gets a readable name. ADD R1, R2 adds R2 to R1 and keeps the result in R1.',
+  apply:s=>({...s, asm:true}),
+  anim:async run=>{ for(let i=1;i<=4;i++){ $('asm-i'+i).classList.add('show'); await sleep(550,run); } }});
+
+steps.push({phase:null, ins:null,
+  t:'Run the program again, with names',
+  s:'Memory is back to its starting data: NUM1 = 4, NUM2 = 1. Watch the same four commands, read in assembly.',
+  apply:s=>({...s, mem1:'00000100', mem2:'00000001', ir:'', r1:'', r2:'', hl:null, hlReg:null, dec:null, alu:''}),
+  anim:null});
+
+addInstruction(0,
+  'Fetch LOAD R1, NUM1',
+  'LOAD R1, NUM1 = bring the number stored in NUM1 into R1',
+  'Execute LOAD R1, NUM1',
+  'NUM1 holds 4, so 00000100 travels over the Bus into R1.',
+  s=>({...s, hl:'m1', r1:s.mem1, hlReg:'r1'}), execRead1,
+  {fetchS:'Fetch: its binary form 0000010010011001 travels from Memory over the Bus into the CPU.'});
+addInstruction(1,
+  'Fetch LOAD R2, NUM2',
+  'LOAD R2, NUM2 = bring the number stored in NUM2 into R2',
+  'Execute LOAD R2, NUM2',
+  'NUM2 holds 1, so 00000001 travels over the Bus into R2.',
+  s=>({...s, hl:'m2', r2:s.mem2, hlReg:'r2'}), execRead2,
+  {fetchS:'Fetch: its binary form 0000010010011010 travels from Memory over the Bus into the CPU.'});
+addInstruction(2,
+  'Fetch ADD R1, R2',
+  'ADD R1, R2 = add R2 to R1 and keep the result in R1',
+  'Execute ADD R1, R2',
+  'The ALU adds R1 + R2 = 4 + 1 = 5, and the result 00000101 goes back into R1.',
+  s=>({...s, hl:null, r1:'00000101', hlReg:'r1', alu:'4 + 1 = 5'}), execAdd,
+  {fetchS:'Fetch: its binary form 0000011011001000 travels from Memory over the Bus into the CPU.'});
+addInstruction(3,
+  'Fetch STORE R1, NUM1',
+  'STORE R1, NUM1 = copy the number in R1 into NUM1',
+  'Execute STORE R1, NUM1',
+  'R1 holds 5, so NUM1 becomes 00000101.',
+  s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}), execStore,
+  {fetchS:'Fetch: its binary form 0000010011010001 travels from Memory over the Bus into the CPU.'});
+
 function stateAt(n){ let s={...INIT}; for(let i=1;i<=n;i++) s=steps[i].apply(s); return s; }
 
 // ---------- rendering ----------
 function setHl(row){
   ['m1','m2','i1','i2','i3','i4'].forEach(r=>$('val-'+r).classList.toggle('hl', r===row));
+  ['i1','i2','i3','i4'].forEach(r=>$('asm-'+r).classList.toggle('hl', r===row));
 }
 function pulse(id,on){ $(id).classList.toggle('pulse',on); }
-function clearDecoder(){ $('pbody').style.opacity=0; $('p-empty').style.opacity=1; }
-function showDecoder(k,vis){
-  const d=DEC[k];
+function clearDecoder(){ $('pbody').style.opacity=0; $('p-empty').style.opacity=1; $('p-title').textContent='Inside the Control Unit'; }
+function showDecoder(k,vis,asm){
+  const d=(asm?DEC_ASM:DEC)[k];
+  $('p-title').textContent = asm ? 'Inside the Control Unit, decoding '+I[k] : 'Inside the Control Unit';
   $('p-empty').style.opacity=0; $('pbody').style.opacity=1;
   const op=$('p-op'), ad=$('p-addr');
   op.textContent=d.op; ad.textContent=d.addr;
@@ -333,8 +394,8 @@ function showDecoder(k,vis){
   const ax=82+w+14; ad.setAttribute('x',ax); $('p-addrl').setAttribute('x',ax);
   op.style.opacity=vis.op?1:0;
   ad.style.opacity=vis.addr?1:(d.addr?.15:0);
-  $('p-opl').textContent=vis.op?(d.addr?'operation':'operation (no address needed)'):'';
-  $('p-addrl').textContent=(vis.addr&&d.addr)?'address':'';
+  $('p-opl').textContent=vis.op?((d.addr||asm)?'operation':'operation (no address needed)'):'';
+  $('p-addrl').textContent=(vis.addr&&d.addr)?(asm?'operands':'address'):'';
   $('p-mean').textContent=vis.mean?d.mean:'';
 }
 
@@ -346,7 +407,8 @@ function render(s, step, idx){
   ['ir','r1','r2'].forEach(r=>$('reg-'+r).classList.toggle('hl', s.hlReg===r));
   $('alu-txt').textContent=s.alu;
   pulse('cu',false); pulse('alu',false);
-  if(s.dec===null) clearDecoder(); else showDecoder(s.dec,{op:true,addr:true,mean:true});
+  if(s.dec===null) clearDecoder(); else showDecoder(s.dec,{op:true,addr:true,mean:true},s.asm);
+  ['i1','i2','i3','i4'].forEach(r=>$('asm-'+r).classList.toggle('show',s.asm));
   $('addr-m1').textContent=s.named?'NUM1':'1'; $('addr-m2').textContent=s.named?'NUM2':'2';
   $('addr-m1').classList.toggle('named',s.named); $('addr-m2').classList.toggle('named',s.named);
   $('lab-r1').classList.toggle('show',s.named); $('lab-r2').classList.toggle('show',s.named);
@@ -438,7 +500,7 @@ document.addEventListener('keydown',e=>{
 });
 
 go(0,false);
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(cur && cur.dec!==null) showDecoder(cur.dec,{op:true,addr:true,mean:true}); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(cur && cur.dec!==null) showDecoder(cur.dec,{op:true,addr:true,mean:true},cur.asm); });
 })();
 </script>
 </body>
