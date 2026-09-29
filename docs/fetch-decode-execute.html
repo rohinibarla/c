@@ -6,7 +6,7 @@
 <title>Execution: fetch, decode, execute</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@600&family=Roboto:wght@400&display=swap" rel="stylesheet">
 <style>
 :root{
   box-sizing:border-box;
@@ -87,6 +87,9 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
 .asm{ font-size:18px; font-weight:700; fill:#4747B8; opacity:0; transition:opacity .4s, fill .25s; }
 .asm.show{ opacity:1; }
 .asm.hl{ fill:var(--green); }
+.code{ font-family:"Source Code Pro",ui-monospace,Menlo,Consolas,monospace; font-size:26px; font-weight:600; fill:#b5b5b5; transition:fill .3s; }
+.code.on{ fill:var(--red); }
+.box{ transition:fill .2s; } .box.pulse{ fill:#f7e7a8; }
 .leg{ font-size:17px; font-weight:600; fill:#444; }
 @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
@@ -151,6 +154,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <text id="val-m2" x="735" y="203" class="bin">00000001</text>
       <text id="dec-m2" x="832" y="203" class="dec">(1)</text>
       <text x="668" y="234" class="addr">:</text><text x="768" y="234" class="addr">:</text>
+      <g id="progrows" class="fade">
       <text id="addr-i1" x="660" y="272" class="addr">17</text>
       <text id="val-i1" x="700" y="272" class="bin">0000010010011001</text>
       <text id="addr-i2" x="660" y="305" class="addr">18</text>
@@ -163,6 +167,14 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <text id="asm-i2" x="868" y="305" class="asm">LOAD R2, NUM2</text>
       <text id="asm-i3" x="868" y="338" class="asm">ADD R1, R2</text>
       <text id="asm-i4" x="868" y="371" class="asm">STORE R1, NUM1</text>
+      </g>
+      <g id="bufrows" class="fade" style="opacity:0">
+        <text x="1008" y="254" font-size="14" fill="#777" text-anchor="end">OS keyboard buffer</text>
+        <text id="addr-b1" x="660" y="272" class="addr"></text><text id="val-b1" x="720" y="272" class="bin"></text>
+        <text id="addr-b2" x="660" y="305" class="addr"></text><text id="val-b2" x="720" y="305" class="bin"></text>
+        <text id="addr-b3" x="660" y="338" class="addr"></text><text id="val-b3" x="720" y="338" class="bin"></text>
+        <text id="addr-b4" x="660" y="371" class="addr"></text><text id="val-b4" x="720" y="371" class="bin"></text>
+      </g>
 
       <!-- Output -->
       <text x="1180" y="78" class="lbl" font-size="32">Output Devices:</text>
@@ -172,7 +184,8 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <!-- Disk / input -->
       <rect x="760" y="560" width="190" height="122" class="box"/>
       <text x="855" y="718" class="lbl" font-size="32" text-anchor="middle">Hard Disk</text>
-      <rect x="1040" y="560" width="190" height="122" class="box"/>
+      <rect id="inbox" x="1040" y="560" width="190" height="122" class="box"/>
+      <text id="kbd" x="1135" y="632" text-anchor="middle" font-size="30" font-weight="700" fill="#2E7D32"></text>
       <text x="1040" y="718" class="lbl" font-size="32">Input Devices:</text>
       <text x="1040" y="752" class="lbl" font-size="32">Keyboard/CD/..</text>
 
@@ -191,6 +204,11 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
         <text id="p-opl" x="82" y="666" class="psub"></text>
         <text id="p-addrl" x="300" y="666" class="psub"></text>
         <text id="p-mean" x="82" y="714" class="pmean"></text>
+      </g>
+      <g id="ccode" class="fade" style="opacity:0">
+        <text id="c0" x="82" y="640" class="code">int num1;</text>
+        <text id="c1" x="82" y="684" class="code">scanf("%d", &amp;num1);</text>
+        <text id="c-note" x="82" y="728" class="psub" font-size="16"></text>
       </g>
       <text id="p-empty" x="82" y="660" class="psub" font-size="18">Waiting for an instruction to decode.</text>
 
@@ -264,7 +282,7 @@ function cpuToMem(slot, row, x){ return memToCpu(row, slot, x).reverse(); }
 const ADDR_X = 700;
 
 // ---------- state ----------
-const INIT = {mem1:'00000100', mem2:'00000001', hl:null, pc:ADDRS[0], ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false};
+const INIT = {mem1:'00000100', mem2:'00000001', hl:null, pc:ADDRS[0], ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false, cmode:false, cline:null, keys:'', buf:[]};
 
 const steps = [{phase:null, ins:null,
   t:'A program is a collection of commands',
@@ -400,16 +418,82 @@ for(let k=0;k<4;k++) addInstruction(k,{
   fetchS:'Fetch: the PC sends address '+ADDRS[k]+' to Memory, and Memory returns the binary command '+I[k]+'.',
   decodeS:ASM_DEC[k], execT:'Execute '+ASM[k], execS:ASM_EXEC[k]});
 
+// ---------- scanf section ----------
+const KEYS=[{ch:'2',code:'00110010'},{ch:'6',code:'00110110'},{ch:'\n',code:'00001010',name:'Enter'}];
+const kname=K=>K.name||("'"+K.ch+"'");
+const keysText=t=>t.split('').map(c=>c==='\n'?'\u21b5':c).join(' ');
+const OS_CPU=[364,219];
+const N26='00011010';
+
+steps.push({phase:null, ins:null, t:'int num1; names a memory location',
+  s:'In C we don\u2019t pick addresses ourselves. int num1; gives a memory location the name num1, just like NUM1 in assembly. Right now it still holds 5 from the program.', n:'',
+  apply:s=>({...s, cmode:true, cline:0, keys:'', buf:[], hl:'m1', ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:''}), anim:null});
+steps.push({phase:null, ins:null, t:'scanf("%d", &num1);',
+  s:'scanf reads a number from the keyboard and stores it in num1. &num1 means \u201cthe address of num1\u201d. The OS does the actual transfer.',
+  n:'The user types 2, 6 and presses Enter: 3 keystrokes.',
+  apply:s=>({...s, cline:1, hl:null}), anim:null});
+
+KEYS.forEach((K,k)=>{
+  const row='b'+(k+1), label=kname(K)+' '+K.code;
+  steps.push({phase:null, ins:null, lab:'Keystroke '+(k+1)+' of '+KEYS.length,
+    t:'Keystroke '+(k+1)+': '+kname(K),
+    s: K.name ? 'Enter (code 00001010) tells the OS that the number is complete.'
+              : 'The OS doesn\u2019t get a number yet, only the character '+kname(K)+', as its code '+K.code+'.',
+    n: kname(K)+' is now in the OS keyboard buffer.',
+    apply:s=>({...s, keys:s.keys+K.ch, buf:[...s.buf,K], hl:row, hlReg:null, alu:''}),
+    anim:async run=>{
+      setHl(null);
+      pulse('inbox',true); $('kbd').textContent=keysText(cur.keys+K.ch); await sleep(400,run); pulse('inbox',false);
+      narr('Key '+kname(K)+' pressed: the keyboard sends code '+K.code+' over the Bus to the CPU, where the OS picks it up.');
+      await fly(label, [[1135,556],[1135,470],[220,470],[220,300],OS_CPU], run, ['arr-in','bus','arr-cpu']);
+      narr(K.name ? 'Enter is saved too: the OS now knows the number is complete.' : 'The OS saves the character in its keyboard buffer in Memory.');
+      await fly(label, [OS_CPU,[220,300],[220,470],[830,470],[830,410],[760,ROW_Y[row]-6]], run, BUS_UP);
+    }});
+});
+
+steps.push({phase:null, ins:null, t:'The OS converts "26" into a number',
+  s:'Characters are not numbers: \'2\' is code 00110010 (50). The OS subtracts the code of \'0\' (48) from each one and builds the number digit by digit.',
+  n:'2 \u2192 2 \u00d7 10 + 6 = 26 = '+N26,
+  apply:s=>({...s, hl:null, r1:N26, hlReg:'r1', alu:'26'}),
+  anim:async run=>{
+    const lines=[["'2' (50) \u2212 '0' (48) = 2",'2'],["'6' (54) \u2212 '0' (48) = 6, and 2 \u00d7 10 + 6 = 26",'26']];
+    for(let i=0;i<lines.length;i++){
+      const K=KEYS[i], row='b'+(i+1);
+      setHl(row); narr('The OS reads '+kname(K)+' back from its buffer.');
+      await fly(kname(K)+' '+K.code, [[760,ROW_Y[row]-6],[830,410],[830,470],[220,470],[220,300],ALU_C], run, BUS_UP);
+      pulse('alu',true); $('alu-txt').textContent=lines[i][1]; narr(lines[i][0]); await sleep(1100,run); pulse('alu',false);
+    }
+    setHl(null);
+    narr('26 in binary is '+N26+'. The result goes into R1.');
+    await fly(N26,[ALU_C,SLOT.r1],run,[]);
+  }});
+
+steps.push({phase:null, ins:null, t:'Store 26 at &num1',
+  s:'The address of num1 and the value travel on the Bus together. num1 now holds 26, replacing the 5.',
+  n:'Shown as 8 bits here; a real int is usually 32 bits.',
+  apply:s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}),
+  anim:async run=>{
+    narr('&num1 is the address of num1 (001). The OS puts that address and the value '+cur.r1+' on the Bus together.');
+    await Promise.all([
+      fly('001', cpuToMem('r1','m1',ADDR_X), run, BUS_UP, 'ad', [0,-17]),
+      (async()=>{ await sleep(250,run); await fly(cur.r1, cpuToMem('r1','m1'), run, BUS_UP, '', [0,17]); })()
+    ]);
+    setHl('m1'); $('val-m1').textContent=cur.r1; setDec('m1',cur.r1);
+    narr('Memory writes 26 into num1.');
+    await sleep(600,run);
+  }});
+
 function stateAt(n){ let s={...INIT}; for(let i=1;i<=n;i++) s=steps[i].apply(s); return s; }
 
 // ---------- rendering ----------
 function setHl(row){
-  ['m1','m2','i1','i2','i3','i4'].forEach(r=>{
+  ['m1','m2','i1','i2','i3','i4','b1','b2','b3','b4'].forEach(r=>{
     $('val-'+r).classList.toggle('hl', r===row);
     $('addr-'+r).classList.toggle('hl', r===row);
   });
   ['i1','i2','i3','i4'].forEach(r=>$('asm-'+r).classList.toggle('hl', r===row));
 }
+function setDec(r,v){ const d=$('dec-'+r); d.textContent='('+d10(v)+')'; d.setAttribute('x', Math.max(832, 735+v.length*9.7+12)); }
 function regHl(r){ ['pc','ir','r1','r2'].forEach(x=>$('reg-'+x).classList.toggle('hl', r===x)); $('reg-pc').classList.remove('pchl'); }
 function pulse(id,on){ $(id).classList.toggle('pulse',on); }
 function narr(t){ $('cap-n').textContent=t; }
@@ -429,8 +513,8 @@ function showDecoder(k,vis,asm){
   $('p-mean').textContent=vis.mean?d.mean:'';
 }
 function render(s, step, i, keepNarr){
-  $('val-m1').textContent=s.mem1; $('dec-m1').textContent='('+d10(s.mem1)+')';
-  $('val-m2').textContent=s.mem2; $('dec-m2').textContent='('+d10(s.mem2)+')';
+  $('val-m1').textContent=s.mem1; setDec('m1',s.mem1);
+  $('val-m2').textContent=s.mem2; setDec('m2',s.mem2);
   setHl(s.hl);
   $('reg-pc').textContent=s.pc; $('reg-ir').textContent=s.ir; $('reg-r1').textContent=s.r1; $('reg-r2').textContent=s.r2;
   regHl(s.hlReg);
@@ -438,13 +522,22 @@ function render(s, step, i, keepNarr){
   pulse('cu',false); pulse('alu',false);
   if(s.dec===null) clearDecoder(); else showDecoder(s.dec,{op:true,addr:true,mean:true},s.asm);
   ['i1','i2','i3','i4'].forEach(r=>$('asm-'+r).classList.toggle('show',s.asm));
-  $('addr-m1').textContent=s.named?'NUM1':'1'; $('addr-m2').textContent=s.named?'NUM2':'2';
+  $('addr-m1').textContent=s.cmode?'num1':(s.named?'NUM1':'1'); $('addr-m2').textContent=s.cmode?'num2':(s.named?'NUM2':'2');
+  $('progrows').style.opacity=s.cmode?0:1; $('bufrows').style.opacity=s.cmode?1:0;
+  for(let i=0;i<4;i++){ const K=s.buf[i]; $('addr-b'+(i+1)).textContent=K?(K.name?'\u21b5':"'"+K.ch+"'"):''; $('val-b'+(i+1)).textContent=K?K.code:''; }
+  $('kbd').textContent=keysText(s.keys);
+  pulse('inbox',false);
+  if(s.cmode){
+    $('pbody').style.opacity=0; $('p-empty').style.opacity=0; $('ccode').style.opacity=1; $('p-title').textContent='C program';
+    $('c0').classList.toggle('on',s.cline===0); $('c1').classList.toggle('on',s.cline===1);
+    $('c-note').textContent = s.cline===0 ? 'Names a memory location.' : 'Reads a number from the input and stores it at &num1, the address of num1. Invokes the OS to transfer the number.';
+  } else { $('ccode').style.opacity=0; }
   $('addr-m1').classList.toggle('named',s.named); $('addr-m2').classList.toggle('named',s.named);
   $('lab-r1').classList.toggle('show',s.named); $('lab-r2').classList.toggle('show',s.named);
   if(!keepNarr) narr(step.n||'');
   const order=['fetch','decode','execute'], pi=order.indexOf(step.phase);
   order.forEach((p,j)=>{ const el=$('ph-'+p); el.classList.toggle('on',j===pi); el.classList.toggle('done',pi>=0&&j<pi); });
-  $('instr').textContent = step.ins===null ? '\u00a0' : 'Command '+(step.ins+1)+' of 4';
+  $('instr').textContent = step.lab || (step.ins===null ? '\u00a0' : 'Command '+(step.ins+1)+' of 4');
   $('cap-t').textContent=step.t; $('cap-s').textContent=step.s;
   $('count').textContent=(i+1)+'/'+steps.length;
   $('prev').disabled=i===0; $('next').disabled=i===steps.length-1;
@@ -523,7 +616,7 @@ document.addEventListener('keydown',e=>{
   else if(e.key===' '){ e.preventDefault(); $('play').click(); }
 });
 go(0,false);
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(cur && cur.dec!==null) showDecoder(cur.dec,{op:true,addr:true,mean:true},cur.asm); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(cur && cur.dec!==null && !cur.cmode) showDecoder(cur.dec,{op:true,addr:true,mean:true},cur.asm); });
 })();
 </script>
 </body>
