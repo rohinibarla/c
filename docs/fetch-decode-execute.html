@@ -14,7 +14,7 @@
   padding-bottom:env(safe-area-inset-bottom,0px);
   --page:#eceaf4; --ink:#111; --muted:#555;
   --slide:#ffffff; --box:#DDD9C4; --boxline:#7F7F7F;
-  --red:#D00000; --blue:#4F81BD; --blue-lit:#79AEEF; --green:#2E7D32;
+  --red:#D00000; --blue:#4F81BD; --blue-lit:#79AEEF; --green:#2E7D32; --addr:#5B3FC4;
   --f1:#4747B8; --f2:#8585D1; --f3:#A9A9E0;
   --btn:#4747B8; --btn-ink:#fff; --ctl:#fff; --ctl-line:#c9c7dc;
 }
@@ -27,8 +27,7 @@ html{ scroll-padding-top:env(safe-area-inset-top,0px); }
 body{ margin:0; background:var(--page); color:var(--ink);
   font-family:"Source Sans 3","Source Sans Pro","Segoe UI",system-ui,sans-serif; }
 .wrap{ max-width:1280px; margin:0 auto; padding:16px; }
-.slide{ background:var(--slide); color:#000; border-radius:6px; overflow:hidden;
-  box-shadow:0 2px 14px rgba(40,30,120,.18); }
+.slide{ background:var(--slide); color:#000; border-radius:6px; overflow:hidden; box-shadow:0 2px 14px rgba(40,30,120,.18); }
 .head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 24px; padding:22px 36px 0; }
 .head h1{ margin:0; font-size:clamp(30px,4.2vw,54px); font-weight:700; line-height:1; }
 .phases{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:clamp(14px,1.6vw,19px); }
@@ -39,9 +38,10 @@ body{ margin:0; background:var(--page); color:var(--ink);
 .instr{ font-size:clamp(13px,1.4vw,17px); color:#555; width:100%; text-align:right; }
 .stage{ overflow-x:auto; }
 svg{ display:block; width:100%; height:auto; min-width:640px; }
-.caption{ padding:4px 36px 18px; min-height:112px; }
+.caption{ padding:4px 36px 18px; min-height:142px; }
 .caption .t{ font-size:clamp(17px,2vw,26px); font-weight:700; margin:0 0 4px; }
 .caption .s{ font-size:clamp(15px,1.7vw,22px); font-weight:600; margin:0; color:#222; }
+.caption .n{ font-size:clamp(14px,1.5vw,19px); font-weight:600; margin:6px 0 0; color:var(--addr); min-height:1.3em; }
 .footer{ display:grid; grid-template-columns:1fr 1fr 1fr; font-family:Roboto,Arial,sans-serif; color:#fff; font-size:clamp(13px,1.5vw,20px); }
 .footer div{ padding:10px; text-align:center; }
 .footer div:nth-child(1){ background:var(--f1); } .footer div:nth-child(2){ background:var(--f2); } .footer div:nth-child(3){ background:var(--f3); }
@@ -52,26 +52,31 @@ button.primary{ background:var(--btn); color:var(--btn-ink); border-color:var(--
 button:disabled{ opacity:.4; cursor:default; }
 button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline-offset:2px; }
 .hint{ text-align:center; color:var(--muted); font-size:14px; margin:6px 0 20px; }
-/* svg styling */
+/* svg */
 .lbl{ fill:var(--red); font-weight:700; }
 .box{ fill:var(--box); stroke:var(--boxline); stroke-width:1.5; }
-.inner{ fill:var(--box); stroke:#000; stroke-width:1.5; }
+.inner{ fill:var(--box); stroke:#000; stroke-width:1.5; transition:fill .2s; }
 .arrow{ fill:var(--blue); transition:fill .2s; }
 .arrow.lit{ fill:var(--blue-lit); filter:url(#glow); }
 .bin{ font-size:19px; fill:#000; font-weight:600; font-variant-numeric:tabular-nums; transition:fill .25s; }
 .bin.hl{ fill:var(--green); }
-.reg{ font-size:15px; font-weight:600; fill:#000; }
+.reg{ font-size:15px; font-weight:600; fill:#000; transition:fill .25s; }
 .reg.hl{ fill:var(--green); }
+.reg.pchl{ fill:var(--addr); }
 .dec{ font-size:15px; fill:#888; }
-.addr{ font-size:19px; font-weight:600; fill:#000; }
+.addr{ font-size:19px; font-weight:600; fill:#000; transition:fill .25s; }
 .addr.named{ fill:var(--green); font-weight:700; }
+.addr.hl{ fill:var(--addr); font-weight:700; }
 .rlab{ font-size:14px; font-weight:700; fill:var(--green); opacity:0; transition:opacity .4s; }
 .rlab.show{ opacity:1; }
+.rfix{ font-size:14px; font-weight:700; fill:var(--addr); }
 .cu{ fill:#fff; stroke:#000; stroke-width:1.5; transition:fill .2s; }
 .cu.pulse{ fill:#ffe9e9; }
 .alu.pulse{ fill:#f7e7a8; }
 .pkt rect{ fill:#fff; stroke:var(--green); stroke-width:2; }
 .pkt text{ fill:var(--green); font-weight:700; font-size:15px; }
+.pkt.ad rect{ stroke:var(--addr); fill:#f3f0ff; }
+.pkt.ad text{ fill:var(--addr); }
 .panel{ fill:#fafafe; stroke:#b9b7d4; stroke-width:1.5; stroke-dasharray:6 5; }
 .ptitle{ font-size:16px; fill:#666; font-weight:600; }
 .pbits{ font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; }
@@ -82,6 +87,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
 .asm{ font-size:18px; font-weight:700; fill:#4747B8; opacity:0; transition:opacity .4s, fill .25s; }
 .asm.show{ opacity:1; }
 .asm.hl{ fill:var(--green); }
+.leg{ font-size:17px; font-weight:600; fill:#444; }
 @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 </style>
 </head>
@@ -99,7 +105,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
     </div>
 
     <div class="stage">
-    <svg viewBox="0 0 1600 760" id="svg" role="img" aria-label="CPU, memory and bus diagram showing instruction execution">
+    <svg viewBox="0 0 1600 760" role="img" aria-label="CPU, memory and bus diagram showing instruction execution">
       <defs>
         <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
           <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
@@ -109,10 +115,8 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
         </filter>
       </defs>
 
-      <!-- zoom line from control unit to decoder panel (behind bus) -->
       <path d="M300 330 H110 V560" fill="none" stroke="#b9b7d4" stroke-width="1.5" stroke-dasharray="6 5"/>
 
-      <!-- Bus -->
       <polygon id="bus" class="arrow" points="60,470 95,436 95,455 1505,455 1505,436 1540,470 1505,504 1505,485 95,485 95,504"/>
       <text x="440" y="535" class="lbl" font-size="32">Bus</text>
       <g id="arrows"></g>
@@ -124,11 +128,14 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <text x="208" y="200" class="lbl" font-size="30" text-anchor="middle">ALU</text>
       <text id="alu-txt" x="208" y="245" font-size="17" font-weight="700" fill="#2E7D32" text-anchor="middle"></text>
       <rect x="284" y="138" width="160" height="136" class="inner"/>
-      <text id="reg-ir" x="364" y="170" class="reg" text-anchor="middle"></text>
-      <text id="reg-r1" x="364" y="212" class="reg" text-anchor="middle"></text>
-      <text id="reg-r2" x="364" y="250" class="reg" text-anchor="middle"></text>
-      <text id="lab-r1" x="262" y="212" class="rlab">R1</text>
-      <text id="lab-r2" x="262" y="250" class="rlab">R2</text>
+      <text x="259" y="163" class="rfix">PC</text>
+      <text x="261" y="193" class="rfix">IR</text>
+      <text id="reg-pc" x="364" y="163" class="reg" text-anchor="middle"></text>
+      <text id="reg-ir" x="364" y="193" class="reg" text-anchor="middle"></text>
+      <text id="reg-r1" x="364" y="225" class="reg" text-anchor="middle"></text>
+      <text id="reg-r2" x="364" y="257" class="reg" text-anchor="middle"></text>
+      <text id="lab-r1" x="259" y="225" class="rlab">R1</text>
+      <text id="lab-r2" x="259" y="257" class="rlab">R2</text>
       <line x1="345" y1="305" x2="360" y2="278" stroke="#000" stroke-width="1.5"/>
       <path d="M356 284 L360 276 L364 285" fill="none" stroke="#000" stroke-width="1.5"/>
       <rect id="cu" x="300" y="305" width="180" height="50" class="cu"/>
@@ -137,35 +144,43 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <!-- Memory -->
       <text x="830" y="105" class="lbl" font-size="34" text-anchor="middle">Memory</text>
       <rect x="640" y="120" width="380" height="280" class="box"/>
-      <text id="addr-m1" x="668" y="168" class="addr">1</text>
+      <text id="addr-m1" x="664" y="168" class="addr">1</text>
       <text id="val-m1" x="735" y="168" class="bin">00000100</text>
       <text id="dec-m1" x="832" y="168" class="dec">(4)</text>
-      <text id="addr-m2" x="668" y="203" class="addr">2</text>
+      <text id="addr-m2" x="664" y="203" class="addr">2</text>
       <text id="val-m2" x="735" y="203" class="bin">00000001</text>
       <text id="dec-m2" x="832" y="203" class="dec">(1)</text>
-      <text x="672" y="232" class="addr">:</text><text x="768" y="232" class="addr">:</text>
-      <text id="val-i1" x="690" y="275" class="bin">0000010010011001</text>
-      <text id="val-i2" x="690" y="308" class="bin">0000010010011010</text>
-      <text id="val-i3" x="690" y="341" class="bin">0000011011001000</text>
-      <text id="val-i4" x="690" y="374" class="bin">0000010011010001</text>
-      <text id="asm-i1" x="864" y="275" class="asm">LOAD R1, NUM1</text>
-      <text id="asm-i2" x="864" y="308" class="asm">LOAD R2, NUM2</text>
-      <text id="asm-i3" x="864" y="341" class="asm">ADD R1, R2</text>
-      <text id="asm-i4" x="864" y="374" class="asm">STORE R1, NUM1</text>
-      <text x="1008" y="258" font-size="14" fill="#777" text-anchor="end">program</text>
-      <text x="1008" y="150" font-size="14" fill="#777" text-anchor="end">data</text>
+      <text x="668" y="234" class="addr">:</text><text x="768" y="234" class="addr">:</text>
+      <text id="addr-i1" x="660" y="272" class="addr">17</text>
+      <text id="val-i1" x="700" y="272" class="bin">0000010010011001</text>
+      <text id="addr-i2" x="660" y="305" class="addr">18</text>
+      <text id="val-i2" x="700" y="305" class="bin">0000010010011010</text>
+      <text id="addr-i3" x="660" y="338" class="addr">19</text>
+      <text id="val-i3" x="700" y="338" class="bin">0000011011001000</text>
+      <text id="addr-i4" x="660" y="371" class="addr">20</text>
+      <text id="val-i4" x="700" y="371" class="bin">0000010011010001</text>
+      <text id="asm-i1" x="868" y="272" class="asm">LOAD R1, NUM1</text>
+      <text id="asm-i2" x="868" y="305" class="asm">LOAD R2, NUM2</text>
+      <text id="asm-i3" x="868" y="338" class="asm">ADD R1, R2</text>
+      <text id="asm-i4" x="868" y="371" class="asm">STORE R1, NUM1</text>
 
       <!-- Output -->
       <text x="1180" y="78" class="lbl" font-size="32">Output Devices:</text>
       <text x="1180" y="110" class="lbl" font-size="32">Monitor/Printer/...</text>
       <rect x="1180" y="122" width="200" height="130" class="box"/>
 
-      <!-- Hard disk / input -->
+      <!-- Disk / input -->
       <rect x="760" y="560" width="190" height="122" class="box"/>
       <text x="855" y="718" class="lbl" font-size="32" text-anchor="middle">Hard Disk</text>
       <rect x="1040" y="560" width="190" height="122" class="box"/>
       <text x="1040" y="718" class="lbl" font-size="32">Input Devices:</text>
       <text x="1040" y="752" class="lbl" font-size="32">Keyboard/CD/..</text>
+
+      <!-- Legend -->
+      <rect x="1275" y="566" width="42" height="22" rx="5" fill="#f3f0ff" stroke="#5B3FC4" stroke-width="2"/>
+      <text x="1328" y="583" class="leg">Address on the Bus</text>
+      <rect x="1275" y="604" width="42" height="22" rx="5" fill="#fff" stroke="#2E7D32" stroke-width="2"/>
+      <text x="1328" y="621" class="leg">Data or command</text>
 
       <!-- Decoder panel -->
       <rect x="60" y="560" width="640" height="190" rx="10" class="panel"/>
@@ -186,6 +201,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
     <div class="caption" aria-live="polite">
       <p class="t" id="cap-t"></p>
       <p class="s" id="cap-s"></p>
+      <p class="n" id="cap-n"></p>
     </div>
     <div class="footer"><div>System Internals</div><div>Enhance42</div><div id="count"></div></div>
   </div>
@@ -210,28 +226,24 @@ const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ---------- arrows ----------
 function vArrow(id, x, y1, y2){
-  const p = document.createElementNS(NS,'polygon');
-  const h=20, hw=22, sw=8;
-  p.setAttribute('points',[
-    [x,y1],[x+hw,y1+h],[x+sw,y1+h],[x+sw,y2-h],[x+hw,y2-h],[x,y2],
+  const p=document.createElementNS(NS,'polygon'), h=20, hw=22, sw=8;
+  p.setAttribute('points',[[x,y1],[x+hw,y1+h],[x+sw,y1+h],[x+sw,y2-h],[x+hw,y2-h],[x,y2],
     [x-hw,y2-h],[x-sw,y2-h],[x-sw,y1+h],[x-hw,y1+h]].map(a=>a.join(',')).join(' '));
   p.setAttribute('class','arrow'); p.id=id; $('arrows').appendChild(p);
 }
-vArrow('arr-cpu',220,294,454);
-vArrow('arr-mem',830,402,454);
-vArrow('arr-out',1280,254,454);
-vArrow('arr-disk',855,488,558);
-vArrow('arr-in',1135,488,558);
+vArrow('arr-cpu',220,294,454); vArrow('arr-mem',830,402,454); vArrow('arr-out',1280,254,454);
+vArrow('arr-disk',855,488,558); vArrow('arr-in',1135,488,558);
 
 // ---------- program ----------
 const I = ['0000010010011001','0000010010011010','0000011011001000','0000010011010001'];
+const ASM = ['LOAD R1, NUM1','LOAD R2, NUM2','ADD R1, R2','STORE R1, NUM1'];
+const ADDRS = ['00010001','00010010','00010011','00010100','00010101'];   // addresses 17-20 (and 21 after the last)
 const DEC = [
-  {op:I[0].slice(0,13), addr:'001', name:'Read', mean:'Read: bring data in memory location 001 (location 1) to CPU'},
-  {op:I[1].slice(0,13), addr:'010', name:'Read', mean:'Read: bring data in memory location 010 (location 2) to CPU'},
-  {op:I[2], addr:'', name:'Add', mean:'Add: add the two numbers read, using the ALU'},
-  {op:I[3].slice(0,13), addr:'001', name:'Store', mean:'Store: put the result in memory location 001 (location 1)'}
+  {op:I[0].slice(0,13), addr:'001', mean:'Read: bring data in memory location 001 (location 1) to CPU'},
+  {op:I[1].slice(0,13), addr:'010', mean:'Read: bring data in memory location 010 (location 2) to CPU'},
+  {op:I[2], addr:'', mean:'Add: add the two numbers read, using the ALU'},
+  {op:I[3].slice(0,13), addr:'001', mean:'Store: put the result in memory location 001 (location 1)'}
 ];
 const DEC_ASM = [
   {op:'LOAD', addr:'R1, NUM1', mean:'Copy the number in NUM1 into R1'},
@@ -239,37 +251,89 @@ const DEC_ASM = [
   {op:'ADD', addr:'R1, R2', mean:'R1 = R1 + R2 (the result stays in R1)'},
   {op:'STORE', addr:'R1, NUM1', mean:'Copy the number in R1 into NUM1'}
 ];
-const ROW_Y = {m1:168, m2:203, i1:275, i2:308, i3:341, i4:374};
-const ROW_X = {m1:772, m2:772, i1:760, i2:760, i3:760, i4:760};
-const SLOT = {ir:[364,164], r1:[364,206], r2:[364,244]};
+const ROW_Y = {m1:168, m2:203, i1:272, i2:305, i3:338, i4:371};
+const ROW_X = {m1:772, m2:772, i1:775, i2:775, i3:775, i4:775};
+const SLOT = {pc:[364,157], ir:[364,187], r1:[364,219], r2:[364,251]};
 const ALU_C = [208,238];
+const BUS_UP = ['arr-cpu','bus','arr-mem'];
+const d10 = b=>parseInt(b,2);
+const nm = (row,s)=> s.named ? (row==='m1'?'NUM1':'NUM2') : 'location '+(row==='m1'?1:2);
 
-function memToCpu(row, slot){
-  return [[ROW_X[row],ROW_Y[row]-6],[830,410],[830,470],[220,470],[220,300],SLOT[slot]];
-}
-function cpuToMem(slot,row){ return memToCpu(row,slot).reverse(); }
+function memToCpu(row, slot, x){ return [[x||ROW_X[row],ROW_Y[row]-6],[830,410],[830,470],[220,470],[220,300],SLOT[slot]]; }
+function cpuToMem(slot, row, x){ return memToCpu(row, slot, x).reverse(); }
+const ADDR_X = 700;
 
 // ---------- state ----------
-const INIT = {mem1:'00000100', mem2:'00000001', hl:null, ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false};
+const INIT = {mem1:'00000100', mem2:'00000001', hl:null, pc:ADDRS[0], ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false};
 
-const steps = [
-  {phase:null, ins:null,
-   t:'A program is a collection of commands',
-   s:'The program (4 commands) and its data (numbers 4 and 1) are stored in Memory, in binary.',
-   apply:s=>s, anim:null},
-];
+const steps = [{phase:null, ins:null,
+  t:'A program is a collection of commands',
+  s:'The program (4 commands, at addresses 17 to 20) and its data (numbers 4 and 1, at addresses 1 and 2) are stored in Memory, in binary.',
+  n:'The Program Counter (PC) holds 00010001 (17), the address of the first command.',
+  apply:s=>s, anim:null}];
 
-function addInstruction(k, fetchT, decodeS, execT, execS, execApply, execAnim, opts={}){
+// ---------- animations ----------
+function fetchAnim(k){
+  const row='i'+(k+1), a=ADDRS[k], nx=ADDRS[k+1];
+  return async run=>{
+    setHl(null); $('reg-ir').textContent=''; clearDecoder(); $('alu-txt').textContent=''; regHl(null);
+    $('reg-pc').classList.add('pchl');
+    narr('The PC holds '+a+': the address of the next command ('+d10(a)+').');
+    await sleep(900,run);
+    narr('The CPU puts address '+a+' from the PC on the Bus.');
+    await fly(a, cpuToMem('pc', row, ADDR_X), run, BUS_UP, 'ad');
+    setHl(row);
+    narr('Memory finds address '+a+' and puts the command stored there on the Bus.');
+    await sleep(500,run);
+    await fly(I[k], memToCpu(row,'ir'), run, BUS_UP);
+    $('reg-ir').textContent=I[k]; regHl('ir');
+    narr('The PC moves on to the next address: '+a+' → '+nx+'.');
+    await sleep(400,run);
+    $('reg-pc').textContent=nx; $('reg-pc').classList.add('pchl');
+    await sleep(700,run);
+    $('reg-pc').classList.remove('pchl');
+  };
+}
+function readAnim(k){
+  const row=k===0?'m1':'m2', reg=k===0?'r1':'r2', ad=DEC[k].addr;
+  return async run=>{
+    narr('The CPU puts address '+ad+' (taken from the command in IR) on the Bus.');
+    await fly(ad, cpuToMem('ir', row, ADDR_X), run, BUS_UP, 'ad');
+    setHl(row);
+    narr('Memory puts the value at address '+ad+', '+(k===0?cur.mem1:cur.mem2)+', on the Bus.');
+    await sleep(500,run);
+    await fly(k===0?cur.mem1:cur.mem2, memToCpu(row,reg), run, BUS_UP);
+    narr('The value lands in '+reg.toUpperCase()+'.');
+  };
+}
+async function addAnim(run){
+  setHl(null);
+  narr('No Bus trip needed: both numbers are already inside the CPU.');
+  await Promise.all([ fly(cur.r1,[SLOT.r1,ALU_C],run,[]), fly(cur.r2,[SLOT.r2,[ALU_C[0],ALU_C[1]+22]],run,[]) ]);
+  pulse('alu',true); $('alu-txt').textContent='4 + 1'; await sleep(600,run);
+  $('alu-txt').textContent='= 5'; await sleep(500,run); pulse('alu',false);
+  narr('The result goes back into R1.');
+  await fly('00000101',[ALU_C,SLOT.r1],run,[]);
+}
+async function storeAnim(run){
+  narr('To write, the CPU puts both the address 001 (from IR) and the value '+cur.r1+' (from R1) on the Bus.');
+  await Promise.all([
+    fly('001', cpuToMem('ir','m1',ADDR_X), run, BUS_UP, 'ad', [0,-17]),
+    (async()=>{ await sleep(250,run); await fly(cur.r1, cpuToMem('r1','m1'), run, BUS_UP, '', [0,17]); })()
+  ]);
+  setHl('m1');
+  narr('Memory writes '+cur.r1+' into address 001.');
+  $('val-m1').textContent=cur.r1; $('dec-m1').textContent='('+d10(cur.r1)+')';
+  await sleep(600,run);
+}
+
+function addInstruction(k, c){
   const row='i'+(k+1);
-  steps.push({phase:'fetch', ins:k, t:fetchT,
-    s:opts.fetchS||'Fetch: the command travels from Memory over the Bus into the CPU.',
-    apply:s=>({...s, hl:row, ir:I[k], hlReg:'ir', dec:null, alu:''}),
-    anim:async run=>{
-      setHl(row); $('reg-ir').textContent=''; clearDecoder(); $('alu-txt').textContent='';
-      await sleep(350,run);
-      await fly(I[k], memToCpu(row,'ir'), run, ['arr-mem','bus','arr-cpu']);
-    }});
-  steps.push({phase:'decode', ins:k, t:opts.decodeT||'Decode in the Control Unit', s:decodeS,
+  steps.push({phase:'fetch', ins:k, t:c.fetchT, s:c.fetchS,
+    n:'PC sent address '+ADDRS[k]+'; Memory returned the command into IR; PC now holds '+ADDRS[k+1]+'.',
+    apply:s=>({...s, hl:row, ir:I[k], pc:ADDRS[k+1], hlReg:'ir', dec:null, alu:''}),
+    anim:fetchAnim(k)});
+  steps.push({phase:'decode', ins:k, t:c.decodeT||'Decode in the Control Unit', s:c.decodeS, n:'',
     apply:s=>({...s, hl:row, hlReg:'ir', dec:k}),
     anim:async run=>{
       pulse('cu',true);
@@ -279,110 +343,76 @@ function addInstruction(k, fetchT, decodeS, execT, execS, execApply, execAnim, o
       showDecoder(k,{op:true,addr:true,mean:true},a); await sleep(500,run);
       pulse('cu',false);
     }});
-  steps.push({phase:'execute', ins:k, t:execT, s:execS, apply:s=>execApply({...s, dec:k}), anim:execAnim});
+  let apply, anim, n;
+  if(k<2){ const r=k===0?'m1':'m2', g=k===0?'r1':'r2';
+    apply=s=>({...s, hl:r, [g]:(k===0?s.mem1:s.mem2), hlReg:g}); anim=readAnim(k);
+    n='Address '+DEC[k].addr+' went out on the Bus; the value came back into '+g.toUpperCase()+'.';
+  } else if(k===2){
+    apply=s=>({...s, hl:null, r1:'00000101', hlReg:'r1', alu:'4 + 1 = 5'}); anim=addAnim;
+    n='The result is in R1.';
+  } else {
+    apply=s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}); anim=storeAnim;
+    n='Address 001 and the value 00000101 went out together; Memory stored the value.';
+  }
+  steps.push({phase:'execute', ins:k, t:c.execT, s:c.execS, n, apply:s=>apply({...s, dec:k}), anim});
 }
 
-addInstruction(0,
-  'Step 1: Bring 0000010010011001 to CPU',
-  '0000010010011001 = Bring data stored in memory location 001 to CPU',
-  'Step 2: Execution of 0000010010011001 in Control Unit',
-  'Brings data stored in location 1, number 4, to CPU',
-  s=>({...s, hl:'m1', r1:s.mem1, hlReg:'r1'}),
-  execRead1);
+const FETCH_S = 'Fetch: the PC sends the command\u2019s address to Memory, Memory sends the command back, and the PC moves to the next address.';
+addInstruction(0,{fetchT:'Step 1: Bring 0000010010011001 to CPU', fetchS:FETCH_S,
+  decodeS:'0000010010011001 = Bring data stored in memory location 001 to CPU',
+  execT:'Step 2: Execution of 0000010010011001 in Control Unit', execS:'Brings data stored in location 1, number 4, to CPU'});
+addInstruction(1,{fetchT:'Step 3: Bring 0000010010011010 to CPU', fetchS:FETCH_S,
+  decodeS:'0000010010011010 = Bring data stored in memory location 010 to CPU',
+  execT:'Step 4: Execution of 0000010010011010 in Control Unit', execS:'Brings data stored in location 2, number 1, to CPU'});
+addInstruction(2,{fetchT:'Step 5: Bring 0000011011001000 to CPU', fetchS:FETCH_S,
+  decodeS:'0000011011001000 = Add two stored numbers',
+  execT:'Step 6: Execution of 0000011011001000 in Control Unit',
+  execS:'Adds two numbers inside CPU using ALU: 00000100 + 00000001 = 00000101 (4 + 1 = 5). The result goes back into R1.'});
+addInstruction(3,{fetchT:'Step 7: Bring 0000010011010001 to CPU', fetchS:FETCH_S,
+  decodeS:'0000010011010001 = Store number in ALU to memory location 001',
+  execT:'Step 8: Execution of 0000010011010001 in Control Unit', execS:'Stores the result, number 5, in location 1'});
 
-addInstruction(1,
-  'Step 3: Bring 0000010010011010 to CPU',
-  '0000010010011010 = Bring data stored in memory location 010 to CPU',
-  'Step 4: Execution of 0000010010011010 in Control Unit',
-  'Brings data stored in location 2, number 1, to CPU',
-  s=>({...s, hl:'m2', r2:s.mem2, hlReg:'r2'}),
-  execRead2);
-
-addInstruction(2,
-  'Step 5: Bring 0000011011001000 to CPU',
-  '0000011011001000 = Add two stored numbers',
-  'Step 6: Execution of 0000011011001000 in Control Unit',
-  'Adds two numbers inside CPU using ALU: 00000100 + 00000001 = 00000101 (4 + 1 = 5). The result goes back into R1.',
-  s=>({...s, hl:null, r1:'00000101', hlReg:'r1', alu:'4 + 1 = 5'}),
-  execAdd);
-
-async function execRead1(run){ setHl('m1'); await sleep(350,run); await fly(cur.mem1, memToCpu('m1','r1'), run, ['arr-mem','bus','arr-cpu']); }
-async function execRead2(run){ setHl('m2'); await sleep(350,run); await fly(cur.mem2, memToCpu('m2','r2'), run, ['arr-mem','bus','arr-cpu']); }
-async function execStore(run){ await fly(cur.r1, cpuToMem('r1','m1'), run, ['arr-cpu','bus','arr-mem']); }
-async function execAdd(run){
-    setHl(null);
-    await Promise.all([
-      fly(cur.r1, [SLOT.r1, ALU_C], run, []),
-      fly(cur.r2, [SLOT.r2, [ALU_C[0], ALU_C[1]+22]], run, [])
-    ]);
-    pulse('alu',true); $('alu-txt').textContent='4 + 1'; await sleep(600,run);
-    $('alu-txt').textContent='= 5'; await sleep(500,run);
-    pulse('alu',false);
-    await fly('00000101', [ALU_C, SLOT.r1], run, []);
-}
-
-addInstruction(3,
-  'Step 7: Bring 0000010011010001 to CPU',
-  '0000010011010001 = Store number in ALU to memory location 001',
-  'Step 8: Execution of 0000010011010001 in Control Unit',
-  'Stores the result, number 5, in location 1',
-  s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}),
-  execStore);
-
-steps.push({phase:null, ins:null,
-  t:'Named Memory and CPU Locations',
-  s:'Assembly language names locations instead of numbering them: memory locations 1 and 2 become NUM1 and NUM2, CPU locations become R1 and R2.',
+steps.push({phase:null, ins:null, t:'Named Memory and CPU Locations',
+  s:'Assembly language names locations instead of numbering them: memory locations 1 and 2 become NUM1 and NUM2, CPU locations become R1 and R2.', n:'',
   apply:s=>({...s, hl:null, hlReg:null, dec:null, alu:'', named:true}), anim:null});
-
-steps.push({phase:null, ins:null,
-  t:'Assembly Language',
-  s:'Each binary command gets a readable name. ADD R1, R2 adds R2 to R1 and keeps the result in R1.',
+steps.push({phase:null, ins:null, t:'Assembly Language',
+  s:'Each binary command gets a readable name. ADD R1, R2 adds R2 to R1 and keeps the result in R1.', n:'',
   apply:s=>({...s, asm:true}),
   anim:async run=>{ for(let i=1;i<=4;i++){ $('asm-i'+i).classList.add('show'); await sleep(550,run); } }});
+steps.push({phase:null, ins:null, t:'Run the program again, with names',
+  s:'Memory is back to its starting data: NUM1 = 4, NUM2 = 1. The PC is back at 00010001 (17). Watch the same four commands, read in assembly.', n:'',
+  apply:s=>({...s, mem1:'00000100', mem2:'00000001', pc:ADDRS[0], ir:'', r1:'', r2:'', hl:null, hlReg:null, dec:null, alu:''}), anim:null});
 
-steps.push({phase:null, ins:null,
-  t:'Run the program again, with names',
-  s:'Memory is back to its starting data: NUM1 = 4, NUM2 = 1. Watch the same four commands, read in assembly.',
-  apply:s=>({...s, mem1:'00000100', mem2:'00000001', ir:'', r1:'', r2:'', hl:null, hlReg:null, dec:null, alu:''}),
-  anim:null});
-
-addInstruction(0,
-  'Fetch LOAD R1, NUM1',
-  'LOAD R1, NUM1 = bring the number stored in NUM1 into R1',
-  'Execute LOAD R1, NUM1',
-  'NUM1 holds 4, so 00000100 travels over the Bus into R1.',
-  s=>({...s, hl:'m1', r1:s.mem1, hlReg:'r1'}), execRead1,
-  {fetchS:'Fetch: its binary form 0000010010011001 travels from Memory over the Bus into the CPU.'});
-addInstruction(1,
-  'Fetch LOAD R2, NUM2',
-  'LOAD R2, NUM2 = bring the number stored in NUM2 into R2',
-  'Execute LOAD R2, NUM2',
-  'NUM2 holds 1, so 00000001 travels over the Bus into R2.',
-  s=>({...s, hl:'m2', r2:s.mem2, hlReg:'r2'}), execRead2,
-  {fetchS:'Fetch: its binary form 0000010010011010 travels from Memory over the Bus into the CPU.'});
-addInstruction(2,
-  'Fetch ADD R1, R2',
-  'ADD R1, R2 = add R2 to R1 and keep the result in R1',
-  'Execute ADD R1, R2',
+const ASM_EXEC = [
+  'The CPU sends address 001 (NUM1); Memory sends back 4, which goes into R1.',
+  'The CPU sends address 010 (NUM2); Memory sends back 1, which goes into R2.',
   'The ALU adds R1 + R2 = 4 + 1 = 5, and the result 00000101 goes back into R1.',
-  s=>({...s, hl:null, r1:'00000101', hlReg:'r1', alu:'4 + 1 = 5'}), execAdd,
-  {fetchS:'Fetch: its binary form 0000011011001000 travels from Memory over the Bus into the CPU.'});
-addInstruction(3,
-  'Fetch STORE R1, NUM1',
-  'STORE R1, NUM1 = copy the number in R1 into NUM1',
-  'Execute STORE R1, NUM1',
-  'R1 holds 5, so NUM1 becomes 00000101.',
-  s=>({...s, hl:'m1', mem1:s.r1, hlReg:null}), execStore,
-  {fetchS:'Fetch: its binary form 0000010011010001 travels from Memory over the Bus into the CPU.'});
+  'The CPU sends the address of NUM1 and the value in R1 (5) together; NUM1 becomes 00000101.'
+];
+const ASM_DEC = [
+  'LOAD R1, NUM1 = bring the number stored in NUM1 into R1',
+  'LOAD R2, NUM2 = bring the number stored in NUM2 into R2',
+  'ADD R1, R2 = add R2 to R1 and keep the result in R1',
+  'STORE R1, NUM1 = copy the number in R1 into NUM1'
+];
+for(let k=0;k<4;k++) addInstruction(k,{
+  fetchT:'Fetch '+ASM[k],
+  fetchS:'Fetch: the PC sends address '+ADDRS[k]+' to Memory, and Memory returns the binary command '+I[k]+'.',
+  decodeS:ASM_DEC[k], execT:'Execute '+ASM[k], execS:ASM_EXEC[k]});
 
 function stateAt(n){ let s={...INIT}; for(let i=1;i<=n;i++) s=steps[i].apply(s); return s; }
 
 // ---------- rendering ----------
 function setHl(row){
-  ['m1','m2','i1','i2','i3','i4'].forEach(r=>$('val-'+r).classList.toggle('hl', r===row));
+  ['m1','m2','i1','i2','i3','i4'].forEach(r=>{
+    $('val-'+r).classList.toggle('hl', r===row);
+    $('addr-'+r).classList.toggle('hl', r===row);
+  });
   ['i1','i2','i3','i4'].forEach(r=>$('asm-'+r).classList.toggle('hl', r===row));
 }
+function regHl(r){ ['pc','ir','r1','r2'].forEach(x=>$('reg-'+x).classList.toggle('hl', r===x)); $('reg-pc').classList.remove('pchl'); }
 function pulse(id,on){ $(id).classList.toggle('pulse',on); }
+function narr(t){ $('cap-n').textContent=t; }
 function clearDecoder(){ $('pbody').style.opacity=0; $('p-empty').style.opacity=1; $('p-title').textContent='Inside the Control Unit'; }
 function showDecoder(k,vis,asm){
   const d=(asm?DEC_ASM:DEC)[k];
@@ -398,13 +428,12 @@ function showDecoder(k,vis,asm){
   $('p-addrl').textContent=(vis.addr&&d.addr)?(asm?'operands':'address'):'';
   $('p-mean').textContent=vis.mean?d.mean:'';
 }
-
-function render(s, step, idx){
-  $('val-m1').textContent=s.mem1; $('dec-m1').textContent='('+parseInt(s.mem1,2)+')';
-  $('val-m2').textContent=s.mem2; $('dec-m2').textContent='('+parseInt(s.mem2,2)+')';
+function render(s, step, i, keepNarr){
+  $('val-m1').textContent=s.mem1; $('dec-m1').textContent='('+d10(s.mem1)+')';
+  $('val-m2').textContent=s.mem2; $('dec-m2').textContent='('+d10(s.mem2)+')';
   setHl(s.hl);
-  $('reg-ir').textContent=s.ir; $('reg-r1').textContent=s.r1; $('reg-r2').textContent=s.r2;
-  ['ir','r1','r2'].forEach(r=>$('reg-'+r).classList.toggle('hl', s.hlReg===r));
+  $('reg-pc').textContent=s.pc; $('reg-ir').textContent=s.ir; $('reg-r1').textContent=s.r1; $('reg-r2').textContent=s.r2;
+  regHl(s.hlReg);
   $('alu-txt').textContent=s.alu;
   pulse('cu',false); pulse('alu',false);
   if(s.dec===null) clearDecoder(); else showDecoder(s.dec,{op:true,addr:true,mean:true},s.asm);
@@ -412,42 +441,36 @@ function render(s, step, idx){
   $('addr-m1').textContent=s.named?'NUM1':'1'; $('addr-m2').textContent=s.named?'NUM2':'2';
   $('addr-m1').classList.toggle('named',s.named); $('addr-m2').classList.toggle('named',s.named);
   $('lab-r1').classList.toggle('show',s.named); $('lab-r2').classList.toggle('show',s.named);
-  renderChrome(step, idx);
-}
-function renderChrome(step, idx){
-  const order=['fetch','decode','execute'];
-  const pi=order.indexOf(step.phase);
-  order.forEach((p,i)=>{
-    const el=$('ph-'+p);
-    el.classList.toggle('on', i===pi);
-    el.classList.toggle('done', pi>=0 && i<pi);
-  });
+  if(!keepNarr) narr(step.n||'');
+  const order=['fetch','decode','execute'], pi=order.indexOf(step.phase);
+  order.forEach((p,j)=>{ const el=$('ph-'+p); el.classList.toggle('on',j===pi); el.classList.toggle('done',pi>=0&&j<pi); });
   $('instr').textContent = step.ins===null ? '\u00a0' : 'Command '+(step.ins+1)+' of 4';
   $('cap-t').textContent=step.t; $('cap-s').textContent=step.s;
-  $('count').textContent=(idx+1)+'/'+steps.length;
-  $('prev').disabled = idx===0; $('next').disabled = idx===steps.length-1;
+  $('count').textContent=(i+1)+'/'+steps.length;
+  $('prev').disabled=i===0; $('next').disabled=i===steps.length-1;
 }
 
-// ---------- animation ----------
+// ---------- animation engine ----------
 let runId=0, cur=null, idx=0, speed=1, playing=false;
 const CANCEL={};
 function guard(run){ if(run!==runId) throw CANCEL; }
 function sleep(ms,run){ return new Promise((res,rej)=>setTimeout(()=>{ run===runId?res():rej(CANCEL); }, reduce?0:ms/speed)); }
 function clearPackets(){ $('packets').innerHTML=''; document.querySelectorAll('.arrow.lit').forEach(a=>a.classList.remove('lit')); }
 
-function fly(text, pts, run, lit){
+function fly(text, pts, run, lit, cls, off){
   return new Promise((res,rej)=>{
     guard(run);
-    const g=document.createElementNS(NS,'g'); g.setAttribute('class','pkt'); g.setAttribute('filter','url(#shadow)');
-    const w=text.length*8.8+24, h=28;
+    if(off) pts = pts.map((p,i)=> (i===0||i===pts.length-1) ? p : [p[0]+off[0], p[1]+off[1]]);
+    const g=document.createElementNS(NS,'g'); g.setAttribute('class','pkt '+(cls||'')); g.setAttribute('filter','url(#shadow)');
+    const label = cls==='ad' ? 'addr '+text : text;
+    const w=label.length*8.8+24, h=28;
     const r=document.createElementNS(NS,'rect'); r.setAttribute('x',-w/2); r.setAttribute('y',-h/2); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('rx',6);
-    const t=document.createElementNS(NS,'text'); t.setAttribute('text-anchor','middle'); t.setAttribute('y',5); t.textContent=text;
+    const t=document.createElementNS(NS,'text'); t.setAttribute('text-anchor','middle'); t.setAttribute('y',5); t.textContent=label;
     g.appendChild(r); g.appendChild(t); $('packets').appendChild(g);
     lit.forEach(id=>$(id).classList.add('lit'));
     const segs=[]; let total=0;
     for(let i=1;i<pts.length;i++){ const L=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); segs.push(L); total+=L; }
-    const dur = reduce?1:Math.max(500, total*1.35)/speed;
-    const t0=performance.now();
+    const dur = reduce?1:Math.max(500,total*1.35)/speed, t0=performance.now();
     const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
     function frame(now){
       if(run!==runId){ g.remove(); rej(CANCEL); return; }
@@ -457,7 +480,7 @@ function fly(text, pts, run, lit){
       const x=pts[i][0]+(pts[i+1][0]-pts[i][0])*f, y=pts[i][1]+(pts[i+1][1]-pts[i][1])*f;
       g.setAttribute('transform','translate('+x+','+y+')');
       if(p<1) requestAnimationFrame(frame);
-      else { g.remove(); lit.forEach(id=>$(id).classList.remove('lit')); res(); }
+      else { g.remove(); if(!$('packets').children.length) lit.forEach(id=>$(id).classList.remove('lit')); res(); }
     }
     requestAnimationFrame(frame);
   });
@@ -467,21 +490,22 @@ async function go(n, animate){
   const run=++runId; clearPackets(); idx=n;
   const step=steps[n];
   if(animate && step.anim){
-    cur=stateAt(n-1); render(cur, step, n);
+    cur=stateAt(n-1); render(cur, step, n, true); narr('');
     try{ await step.anim(run); }catch(e){ if(e===CANCEL) return false; throw e; }
+    if(run!==runId) return false;
+    cur=stateAt(n); render(cur, step, n, true);
+    return true;
   }
-  if(run!==runId) return false;
-  cur=stateAt(n); render(cur, step, n);
+  cur=stateAt(n); render(cur, step, n, false);
   return true;
 }
-
 async function play(){
   playing=true; $('play').textContent='Pause';
   if(idx>=steps.length-1) await go(0,false);
   while(playing && idx<steps.length-1){
     const ok=await go(idx+1,true);
     if(!ok || !playing) break;
-    try{ await sleep(1400, runId); }catch(e){ break; }
+    try{ await sleep(1500, runId); }catch(e){ break; }
   }
   stopPlay();
 }
@@ -490,7 +514,7 @@ function stopPlay(){ playing=false; $('play').textContent= idx>=steps.length-1?'
 $('next').onclick=()=>{ stopPlay(); if(idx<steps.length-1) go(idx+1,true); };
 $('prev').onclick=()=>{ stopPlay(); if(idx>0) go(idx-1,false); };
 $('restart').onclick=()=>{ stopPlay(); go(0,false); };
-$('play').onclick=()=>{ if(playing){ stopPlay(); } else play(); };
+$('play').onclick=()=>{ if(playing) stopPlay(); else play(); };
 $('speed').onchange=e=>{ speed=parseFloat(e.target.value); };
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='SELECT') return;
@@ -498,7 +522,6 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='ArrowLeft'){ e.preventDefault(); $('prev').click(); }
   else if(e.key===' '){ e.preventDefault(); $('play').click(); }
 });
-
 go(0,false);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(cur && cur.dec!==null) showDecoder(cur.dec,{op:true,addr:true,mean:true},cur.asm); });
 })();
