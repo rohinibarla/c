@@ -180,6 +180,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
       <text x="1180" y="78" class="lbl" font-size="32">Output Devices:</text>
       <text x="1180" y="110" class="lbl" font-size="32">Monitor/Printer/...</text>
       <rect x="1180" y="122" width="200" height="130" class="box"/>
+      <g id="screen" class="fade" style="opacity:0"><rect x="1226" y="128" width="108" height="118" rx="4" fill="#1b1b1b"/><g id="monpix"></g></g>
 
       <!-- Disk / input -->
       <rect x="760" y="560" width="190" height="122" class="box"/>
@@ -209,6 +210,7 @@ button:focus-visible,select:focus-visible{ outline:3px solid var(--red); outline
         <text id="c0" x="82" y="640" class="code">int num1;</text>
         <text id="c1" x="82" y="684" class="code">scanf("%d", &amp;num1);</text>
         <text id="c-note" x="82" y="728" class="psub" font-size="16"></text>
+        <g id="glyph" class="fade" style="opacity:0"></g>
       </g>
       <text id="p-empty" x="82" y="660" class="psub" font-size="18">Waiting for an instruction to decode.</text>
 
@@ -282,7 +284,7 @@ function cpuToMem(slot, row, x){ return memToCpu(row, slot, x).reverse(); }
 const ADDR_X = 700;
 
 // ---------- state ----------
-const INIT = {mem1:'00000100', mem2:'00000001', hl:null, pc:ADDRS[0], ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false, cmode:false, cline:null, keys:'', buf:[]};
+const INIT = {mem1:'00000100', mem2:'00000001', hl:null, pc:ADDRS[0], ir:'', r1:'', r2:'', hlReg:null, dec:null, alu:'', named:false, asm:false, cmode:false, cline:null, keys:'', buf:[], pmode:false, pix:0, glyph:false};
 
 const steps = [{phase:null, ins:null,
   t:'A program is a collection of commands',
@@ -483,6 +485,79 @@ steps.push({phase:null, ins:null, t:'Store 26 at &num1',
     await sleep(600,run);
   }});
 
+// ---------- printf section ----------
+const GLYPH=['11111','10000','11110','00001','00001','10001','01110'];
+const CELL=14, GX=566, GY=604;           // glyph grid in the panel
+const MC=15, MX=1242, MY=134;            // pixel grid on the monitor
+(function buildGrids(){
+  const g=$('glyph'), m=$('monpix');
+  GLYPH.forEach((row,r)=>{
+    const t=document.createElementNS(NS,'text'); t.id='gb'+r; t.setAttribute('x',476); t.setAttribute('y',GY+CELL*r+11);
+    t.setAttribute('font-size','13'); t.setAttribute('font-family','"Source Code Pro",monospace'); t.setAttribute('fill','#555'); t.textContent=row; g.appendChild(t);
+    for(let c=0;c<5;c++){
+      const a=document.createElementNS(NS,'rect'); a.setAttribute('x',GX+CELL*c); a.setAttribute('y',GY+CELL*r); a.setAttribute('width',CELL-1); a.setAttribute('height',CELL-1);
+      a.setAttribute('fill', row[c]==='1'?'#111':'#e6e4ef'); g.appendChild(a);
+      const b=document.createElementNS(NS,'rect'); b.id='mp'+r+'_'+c; b.setAttribute('x',MX+MC*c); b.setAttribute('y',MY+MC*r); b.setAttribute('width',MC-2); b.setAttribute('height',MC-2); b.setAttribute('rx',2);
+      b.setAttribute('fill','#2c2c2c'); m.appendChild(b);
+    }
+  });
+})();
+function lightRows(n){ GLYPH.forEach((row,r)=>{ for(let c=0;c<5;c++) $('mp'+r+'_'+c).setAttribute('fill', (r<n && row[c]==='1')?'#9ff0a8':'#2c2c2c'); }); }
+function glyphRowHl(r){ GLYPH.forEach((_,i)=>{ const t=$('gb'+i); t.setAttribute('fill', i===r?'#D00000':'#555'); t.setAttribute('font-weight', i===r?'700':'400'); }); }
+
+steps.push({phase:null, ins:null, t:'printf("%i", num1);',
+  s:'Back to our first program\u2019s total: num1 holds 5 (4 + 1). printf asks the OS to show it on the monitor.', n:'',
+  apply:s=>({...s, cline:2, mem1:'00000101', keys:'', buf:[], hl:'m1', ir:'', r1:'', r2:'', hlReg:null, alu:'', pmode:true, pix:0, glyph:false}), anim:null});
+
+steps.push({phase:null, ins:null, t:'Read num1 into the CPU',
+  s:'To print num1, its value must first come into the CPU.', n:'num1 (5) is now in R1.',
+  apply:s=>({...s, hl:'m1', r1:s.mem1, hlReg:'r1'}),
+  anim:async run=>{
+    narr('The CPU puts the address of num1 (001) on the Bus.');
+    await fly('001', cpuToMem('ir','m1',ADDR_X), run, BUS_UP, 'ad');
+    setHl('m1'); narr('Memory puts the value 00000101 on the Bus.'); await sleep(400,run);
+    await fly(cur.mem1, memToCpu('m1','r1'), run, BUS_UP);
+  }});
+
+steps.push({phase:null, ins:null, t:"The number 5 becomes the character '5'",
+  s:"The screen shows characters, not numbers. Adding the code of '0' (48) turns 5 into 53, the code of '5' (00110101).",
+  n:"This is the reverse of what scanf did.",
+  apply:s=>({...s, hl:null, r2:'00110101', hlReg:'r2', alu:'5 + 48 = 53'}),
+  anim:async run=>{
+    setHl(null); narr('R1 goes to the ALU.');
+    await fly(cur.r1,[SLOT.r1,ALU_C],run,[]);
+    pulse('alu',true); $('alu-txt').textContent='5 + 48'; await sleep(700,run);
+    $('alu-txt').textContent='= 53'; narr("53 is the character code of '5': 00110101."); await sleep(700,run); pulse('alu',false);
+    await fly('00110101',[ALU_C,SLOT.r2],run,[]);
+  }});
+
+steps.push({phase:null, ins:null, t:"The OS looks up the shape of '5'",
+  s:"A font stores each character as a small grid of pixels: 1 means pixel on, 0 means pixel off. Here '5' is 5 \u00d7 7 pixels.",
+  n:'', apply:s=>({...s, glyph:true, alu:''}),
+  anim:async run=>{
+    $('alu-txt').textContent='';
+    $('glyph').style.opacity=1;
+    narr("The OS uses the code 00110101 to find the pixel pattern for '5' in the font.");
+    await sleep(900,run);
+  }});
+
+steps.push({phase:null, ins:null, t:'The OS sends the pixels to the display',
+  s:'Row by row, the pixel pattern travels over the Bus to the monitor, which lights up the pixels that are 1.',
+  n:'The monitor never receives the number 5, only pixels.',
+  apply:s=>({...s, pix:7, hlReg:null}),
+  anim:async run=>{
+    regHl(null);
+    for(let r=0;r<7;r++){
+      glyphRowHl(r);
+      narr('Row '+(r+1)+' of 7: '+GLYPH[r]);
+      await fly(GLYPH[r], [OS_CPU,[220,300],[220,470],[1280,470],[1280,262],[1280,MY+MC*r+6]], run, ['arr-cpu','bus','arr-out'], '', null, 0.45);
+      lightRows(r+1);
+    }
+    glyphRowHl(-1);
+    narr("Done: '5' appears on the screen.");
+    await sleep(500,run);
+  }});
+
 function stateAt(n){ let s={...INIT}; for(let i=1;i<=n;i++) s=steps[i].apply(s); return s; }
 
 // ---------- rendering ----------
@@ -526,11 +601,15 @@ function render(s, step, i, keepNarr){
   $('progrows').style.opacity=s.cmode?0:1; $('bufrows').style.opacity=s.cmode?1:0;
   for(let i=0;i<4;i++){ const K=s.buf[i]; $('addr-b'+(i+1)).textContent=K?(K.name?'\u21b5':"'"+K.ch+"'"):''; $('val-b'+(i+1)).textContent=K?K.code:''; }
   $('kbd').textContent=keysText(s.keys);
+  $('screen').style.opacity=s.pmode?1:0; lightRows(s.pix); glyphRowHl(-1);
+  $('glyph').style.opacity=s.glyph?1:0;
+  if(s.cline===2){ $('c0').textContent='printf("%i", num1);'; $('c1').textContent=''; }
+  else { $('c0').textContent='int num1;'; $('c1').textContent='scanf("%d", &num1);'; }
   pulse('inbox',false);
   if(s.cmode){
     $('pbody').style.opacity=0; $('p-empty').style.opacity=0; $('ccode').style.opacity=1; $('p-title').textContent='C program';
-    $('c0').classList.toggle('on',s.cline===0); $('c1').classList.toggle('on',s.cline===1);
-    $('c-note').textContent = s.cline===0 ? 'Names a memory location.' : 'Reads a number from the input and stores it at &num1, the address of num1. Invokes the OS to transfer the number.';
+    $('c0').classList.toggle('on',s.cline===0||s.cline===2); $('c1').classList.toggle('on',s.cline===1);
+    $('c-note').textContent = s.cline===2 ? 'Writes the number on the monitor. Invokes the OS to do it.' : s.cline===0 ? 'Names a memory location.' : 'Reads a number from the input and stores it at &num1, the address of num1. Invokes the OS to transfer the number.';
   } else { $('ccode').style.opacity=0; }
   $('addr-m1').classList.toggle('named',s.named); $('addr-m2').classList.toggle('named',s.named);
   $('lab-r1').classList.toggle('show',s.named); $('lab-r2').classList.toggle('show',s.named);
@@ -550,7 +629,7 @@ function guard(run){ if(run!==runId) throw CANCEL; }
 function sleep(ms,run){ return new Promise((res,rej)=>setTimeout(()=>{ run===runId?res():rej(CANCEL); }, reduce?0:ms/speed)); }
 function clearPackets(){ $('packets').innerHTML=''; document.querySelectorAll('.arrow.lit').forEach(a=>a.classList.remove('lit')); }
 
-function fly(text, pts, run, lit, cls, off){
+function fly(text, pts, run, lit, cls, off, dm){
   return new Promise((res,rej)=>{
     guard(run);
     if(off) pts = pts.map((p,i)=> (i===0||i===pts.length-1) ? p : [p[0]+off[0], p[1]+off[1]]);
@@ -563,7 +642,7 @@ function fly(text, pts, run, lit, cls, off){
     lit.forEach(id=>$(id).classList.add('lit'));
     const segs=[]; let total=0;
     for(let i=1;i<pts.length;i++){ const L=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); segs.push(L); total+=L; }
-    const dur = reduce?1:Math.max(500,total*1.35)/speed, t0=performance.now();
+    const dur = reduce?1:Math.max(500,total*1.35)/speed*(dm||1), t0=performance.now();
     const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
     function frame(now){
       if(run!==runId){ g.remove(); rej(CANCEL); return; }
